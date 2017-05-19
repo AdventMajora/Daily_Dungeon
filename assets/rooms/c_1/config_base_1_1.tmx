@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="20" height="16" tilewidth="8" tileheight="8" nextobjectid="1">
+ <tileset firstgid="1" name="char_sheet" tilewidth="8" tileheight="8" tilecount="1024">
+  <image source="char_sheet.png" width="256" height="256"/>
+ </tileset>
+ <layer name="Background" width="20" height="16">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAC4WUCxLEIAhD8f539CjSbSvsM6U2M874QYwh6vZDM+t2t7PP8TU3wRhH7NnGXBtY78UezcezuMcxHoiP+YUDELHKL+KrtoPyiLzsk1foQC7kxvuFVuTHNY69yJd6Sh0Gcsd+6tVtj9ivPMnLEfulIe+d+rR/Xs6pRxJt9ddydqEdtVCPRL7UotX11Rro3d/w8Ke8KXo42w5SV/qMmqiu9C6hHuXbTb9MVJzdVi7qP2pGD9LvfFPqNf4DmpO6VjXSmqr2+icchNPIEwAFAAA=
+  </data>
+ </layer>
+ <layer name="Collision" width="20" height="16">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAC6WRwQ2AMAwDy/5voKt0knYcgkR+duOESH5YCnBc+tHaabkst6WD7hPtvX18mZZFuk+0NxJsKqPKpjJm+FR/7HtoIn+qN5VT9aY6ZDfK3tU781BxN4v+/J8RY8Wfvw8x7lzsWLP+Ilb2jMKH7v+HD3W28wDne+35AAUAAA==
+  </data>
+ </layer>
+ <layer name="Overlap" width="20" height="16">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAC62QSQ7AMAgD00eS9iNZnh+fEQVDi+SDFaQMI1drHbmRBxHV9eh33QcykYVso+uJ9qP/MmyS5It2R8Iby8l6YzlZNsZdT7Ax7mbRn8dc8ecxey4qPj0XFZ8Mn8X7hc/ifdv5ezJ3Mv0ARWQwYwAFAAA=
+  </data>
+ </layer>
+</map>

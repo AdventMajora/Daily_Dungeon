@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="10" height="2" tilewidth="16" tileheight="32" nextobjectid="1">
+ <tileset firstgid="1" name="charvars" tilewidth="16" tileheight="32" tilecount="128">
+  <image source="charvars.png" width="256" height="256"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="125"/>
+    <frame tileid="1" duration="125"/>
+    <frame tileid="0" duration="125"/>
+    <frame tileid="2" duration="125"/>
+   </animation>
+  </tile>
+  <tile id="16">
+   <animation>
+    <frame tileid="16" duration="125"/>
+    <frame tileid="17" duration="125"/>
+    <frame tileid="16" duration="125"/>
+    <frame tileid="18" duration="125"/>
+   </animation>
+  </tile>
+  <tile id="32">
+   <animation>
+    <frame tileid="32" duration="125"/>
+    <frame tileid="33" duration="125"/>
+    <frame tileid="34" duration="125"/>
+   </animation>
+  </tile>
+  <tile id="48">
+   <animation>
+    <frame tileid="48" duration="125"/>
+    <frame tileid="49" duration="125"/>
+    <frame tileid="50" duration="125"/>
+   </animation>
+  </tile>
+ </tileset>
+ <layer name="Tile Layer 1" width="10" height="2">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAC2NgIB8wArEgECsCsSFUDADbSPhpUAAAAA==
+  </data>
+ </layer>
+</map>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="20" height="16" tilewidth="8" tileheight="8" nextobjectid="1">
+ <tileset firstgid="1" name="char_sheet" tilewidth="8" tileheight="8" tilecount="1024" columns="32">
+  <image source="../../../dungeon/assets/char_sheet.png" width="256" height="256"/>
+ </tileset>
+ <layer name="Background" width="20" height="16">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAC2NgIB/sg+JRMApGwSgYigAAOAi4XAAFAAA=
+  </data>
+ </layer>
+ <layer name="Collision" width="20" height="16">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAC6VTQRKCMAxsv+lBfAn0E4on5Bt4oP4CTupTTGeyw9IJItKZnZA2XdIkW3vnroKDgdI5F9y04FuxZ8FFMAq6Bb5G7rbEB9+KTRyD2oS7gSh4+Imv1z0rFvnV+t4Ud1Ib1B4Fb+J7ynehcUGBO8gP78V54ngpmIs5cV4oV6TcYK181hbni9xg81r9uvosP/RjDx9qOGbv/ZcvUH8Hqume/NBfzEv6RyloN3A2Eltl9cO8xI2czBWpr1w/1DVx3lZQUTxrg+eFZ541EPxcN9HPtcHzx5rLNdgZe2s+ay7X4NLeN/8DTbqg8wAFAAA=
+  </data>
+ </layer>
+ <layer name="Overlap" width="20" height="16">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAC62TSwrAMAhE9ZD9XKRpLhLIcTtdCBIkgTjCLBQZnooinDhU5IQu6Na83wOPAr1QTfp5NgajZ2MwNsdl0Ul8jHl/Ptsh6ybGaGyZef19mWzM/ZkPY38RX9f4B8faKvd80Q+OtVW+wzTr2WGa9XxT3PLUAAUAAA==
+  </data>
+ </layer>
+</map>
