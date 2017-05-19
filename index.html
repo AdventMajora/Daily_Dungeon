@@ -1,0 +1,312 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<script src="assets/jquery-2.2.2.min.js"></script>
+	</head>
+	<style>
+		@font-face {
+			font-family: visitor;
+			src: url("assets/visitor1.ttf");
+		}
+	</style>
+	<body bgcolor="#787878" onresize="manageScreen()">
+	<div>
+		<div style="position:absolute">
+			<canvas id="myCanvas" height="144" width="160" style="border:1px solid black; display:none"></canvas>
+			<canvas id="render_canvas" height="144" width="160" style="border:1px solid black; image-rendering: pixelated;"></canvas>
+		</div>
+	</div>
+</html>
+<script>
+	var tile_size = 8;			        //size of tiles
+	var base_seed;
+	var player;
+	var player_id = -1;
+	var player_list = [];
+	var player_index = -1;
+	var pressed_keys = [];		        //list of accepted key presses at a given time
+	var map = [[]];                     //The configuration of the current level
+	var map_loc = {};
+	var room_data = null;
+	var room_content = null;
+	var starting_room;
+	var boss_room;
+	var minimap = { 
+		display:false, 
+		map:[],
+		init: function(y,x) {
+			var newRow = [];
+			minimap.map = [];
+			for (var i=0; i<y; i++) {
+				newRow = [];
+				for (var j=0; j<x; j++) {
+					newRow.push(-1);
+				}
+				minimap.map.push(newRow);
+			}
+		} ,
+		update: function(y,x) {
+			
+		}
+	};
+	var paused = false;
+	var menu = false;
+	var menu_height = screen_height-16; //Height of the menu
+	var canvas_height = 576;            //height of the rendered canvas (default value)
+	var canvas_width = 640;             //Width of the rendered canvas (default value)
+	var screen_width = 160;		        //Game Resolution Width
+	var screen_height = 144;		    //Game Resolution Height
+	var mode = -1;
+	var menu_input_lock = false;
+	var p_data;
+	var t_flag;
+	var p_inv;
+	var start_time;		//start time of frame
+	var end_time;		//end time of frame
+	var cycle_time;		//total time a frame took
+	var delay_time;		//delay needed until next frame
+	var server_time;
+	var call_start;
+	var call_end;
+	var call_time;
+	var audio_queue = [];
+	var bgm = new Audio('assets/menu-song.wav');    //bacground music
+	bgm.loop = true;                    //loop the track
+	//var swing = new Audio('assets/swing.wav');
+	var update_rate = 24;
+	var update_complete = true;
+	
+	//////////////////////////////////////////////////////////////////////////
+	//                                                                      //
+	//                              INPUT                                   //
+	//                                                                      //
+	//////////////////////////////////////////////////////////////////////////
+
+	//handle key presses
+	document.addEventListener('keydown', function(event) {
+	  switch (event.keyCode) {
+		case	74:	if (pressed_keys.indexOf('J')<0) {
+						pressed_keys.push('J');
+					}
+					break;
+		case    65: if (pressed_keys.indexOf('A')<0) {
+						pressed_keys.push('A');
+					}
+					break;
+		case    87: if (pressed_keys.indexOf('W')<0) {
+						pressed_keys.push('W');
+					}
+					break;
+		case    68: if (pressed_keys.indexOf('D')<0) {
+						pressed_keys.push('D');
+					}
+					break;
+		case    83: if (pressed_keys.indexOf('S')<0) {
+						pressed_keys.push('S');
+					}
+					break;
+		case    77: if (pressed_keys.indexOf('M')<0) {
+						pressed_keys.push('M');
+						if (paused == true) {
+							menu = false;
+							//bgm.play();
+						} else {
+							paused = true;
+							//bgm.pause();
+							menu = true;
+							menu_height = screen_height-16;
+						}
+					}
+					break;
+		case	32:	if (pressed_keys.indexOf('_')<0 && mid_transition == -1) {
+						pressed_keys.push('_');
+					}
+					break;
+	  }
+	}, false);
+
+	//handle key releases
+	document.addEventListener('keyup', function(event) {
+	  switch (event.keyCode) {
+		case	74:	pressed_keys.splice(pressed_keys.indexOf('J'),1);
+					break;
+		case    65: pressed_keys.splice(pressed_keys.indexOf('A'),1);
+					menu_input_lock = false;
+					break;
+		case    87: pressed_keys.splice(pressed_keys.indexOf('W'),1);
+					menu_input_lock = false;
+					break;
+		case    68: pressed_keys.splice(pressed_keys.indexOf('D'),1);
+					menu_input_lock = false;
+					break;
+		case    83: pressed_keys.splice(pressed_keys.indexOf('S'),1);
+					menu_input_lock = false;
+					break;
+		case    77: pressed_keys.splice(pressed_keys.indexOf('M'),1);
+					break;
+		case	32:	pressed_keys.splice(pressed_keys.indexOf('_'),1);
+					menu_input_lock = false;
+					break;
+	  }
+	}, false);
+	
+	console.log('loading data...');
+	[
+		'data_0.js',
+		'data_augments.js',
+		'data_weapons.js',
+		'data_mobs.js',
+		'data_entities.js',
+		'player.js',
+		'data_overworld.js',
+		'configurations.js',
+		'game_client.js',
+	].forEach(function(src) {
+		var script = document.createElement('script');
+		script.src = src;
+		script.async = false;
+		document.head.appendChild(script);
+	});
+	
+	var load_check = setInterval(function() {
+		if (player != null) {
+			console.log("loading done");
+			clearInterval(load_check);
+			//setup();
+			mode = -1;
+			player_init(player);	//initialize the player
+			init(-1);
+			console.log("starting title screen");
+		}
+	},1000);
+	
+	var title_ready_check = setInterval(function() {
+		if (mode == -1.1) {
+			console.log("USER IS READY!");
+			clearInterval(title_ready_check);
+			mode = 0;
+			init(0);
+			console.log("starting menu screen");
+			//setup();
+		}
+	},250);
+	
+	var user_ready_check = setInterval(function() {
+		if (mode == -2) {
+			console.log("USER IS READY!");
+			clearInterval(user_ready_check);
+			setup();
+		}
+	},250);
+	
+	function setup() {
+		console.log("starting setup...");
+		$.ajax({
+			type: "POST",
+			url: "/client_setup",
+			data: JSON.stringify({
+				data:player.data,
+				avatar:player.avatar,
+				inventory:player.inventory,
+				id:player_id, 
+				pressed_keys: pressed_keys,
+				transition_flag:-1,
+				needs_map_data: true,
+				update_counter:3000
+			}),
+			success: function(data) {
+				menu_input_lock = false;
+				mode = 1;
+				player_id = data.player_id;
+				player_list = data.player_list;
+				//console.log("player_id: "+player_id);
+				base_seed = data.seed;
+				//console.log('base seed: '+base_seed);
+				room_data = data.room_data;
+				//console.log("wall_style: "+room_data.wall_style);
+				//console.log("floor_style: "+room_data.floor_style);
+				map_loc = data.room_loc;
+				//console.log(map_loc);
+				starting_room = data.room_loc;
+				boss_room = data.boss_loc;
+				minimap.init(data.map_size.y, data.map_size.x);
+				init(1);
+				update_start();
+			},
+			contentType: 'application/json'
+		});
+	}
+	
+	function update_start() {
+		//update();
+		setInterval(function() {
+			update();
+		}, update_rate);
+	}
+	
+	function update() {
+	
+		if (update_complete == true) {
+			update_complete = false;
+			call_start = new Date();
+			t_flag = -1;
+			if (player_list[player_id]) {
+				t_flag = player_list[player_id].transition_flag;
+				p_data = player_list[player_id].data;
+				p_inv = player_list[player_id].inventory;
+			}
+			
+			$.ajax({
+				type: "POST",
+				url: "/update",
+				data: JSON.stringify({
+					player:{ 
+						id:player_id, 
+						data: p_data,
+						pressed_keys:pressed_keys,
+						transition_flag:t_flag,
+						curr_room: map_loc,
+						update_counter:3000
+					}
+				}),
+				success: function(data) {
+					var update_data = JSON.parse(data);
+					player_list = update_data.player_data;
+					server_time = update_data.sim_time;
+					audio_queue = audio_queue.concat(update_data.audio_queue);
+					if (update_data.room_content != -1) {
+						room_content = update_data.room_content;
+					}
+					if (update_data.room_data != -1) {
+						room_data = update_data.room_data;
+					}
+					if (update_data.room_loc != -1) {
+						map_loc = update_data.room_loc;
+					}
+					if (update_data.room_data != -1 && update_data.map_loc != -1) {
+						minimap.map[update_data.room_loc.y][update_data.room_loc.x] = update_data.room_data.mini;
+					}
+					if (update_data.map_size != -1) {
+						minimap.init(update_data.map_size.y, update_data.map_size.x);
+					}
+					if (update_data.start != -1) {
+						starting_room = update_data.start;
+					}
+					if (update_data.boss != -1) {
+						boss_room = update_data.boss;
+					}
+					call_end = new Date();
+					call_time = call_end.getTime()-call_start.getTime();
+					//if (call_time > 16)
+					//setTimeout(update(),update_rate);
+					//update();
+					update_complete = true;
+				},
+				contentType: 'application/json'
+			});
+		} else {
+			//console.log("still updating");
+		}
+	}
+	
+</script>

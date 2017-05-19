@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<script src="assets/jquery-2.2.2.min.js"></script>
+	</head>
+	<style>
+		@font-face {
+			font-family: visitor;
+			src: url("assets/visitor1.ttf");
+		}
+	</style>
+	<body bgcolor="#787878">
+	<div id="c_time">
+	</div>
+	<div id="player_stats">
+	</div>
+</html>
+<script>
+
+	update_start();
+	
+	function update_start() {
+		setInterval(function() {
+			update();
+		}, 30);
+	}
+	
+	function update() {
+		$.ajax({
+			type: "GET",
+			url: "/game_state",
+			success: function(data) {
+				var processed_data = JSON.parse(data);
+				
+				var player_data = "Player Data:\n";
+				for (var i=0; i<processed_data.players.length; i++) {
+					if (processed_data.players[i] == null) {
+						player_data += "empty slot\n";
+					} else {
+						player_data += JSON.stringify(processed_data.players[i],null,2);
+						/*player_data += "ID: "+processed_data.players[i].id+
+								"\n....transition_flag: "+processed_data.players[i].transition_flag+
+								"\n....Input: "+JSON.stringify(processed_data.players[i].pressed_keys)+
+								"\n....update_counter: "+processed_data.players[i].update_counter+
+								"\n";*/
+					}
+				}
+				
+				document.getElementById("c_time").innerHTML = "Cycle Time: "+processed_data.time+"<br />";
+					
+				player_data = player_data.replace(/\n/g, "<br />");
+				document.getElementById("player_stats").innerHTML = player_data;
+			},
+			contentType: 'application/json'
+		});
+	}
+</script>

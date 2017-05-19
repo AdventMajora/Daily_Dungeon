@@ -1,0 +1,28 @@
+{
+  "name": "daily_dungeon",
+  "version": "2.0.0",
+  "description": "A co-op dungeon crawler",
+  "main": "server.js",
+  "dependencies": {
+    "async": "^2.0.1",
+    "body-parser": "^1.15.2",
+    "cloneextend": "^0.0.3",
+    "express": "^4.13.4",
+    "xml2js": "^0.4.17"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AdventMajora/dungeon.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AdventMajora/dungeon/issues"
+  },
+  "homepage": "https://github.com/AdventMajora/dungeon#readme"
+}

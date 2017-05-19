@@ -1,0 +1,18 @@
+{
+	"base_seed": -1,
+	"floors_available": 5,
+	"walls_available": 5,
+	"door_probability": 0.7,
+	"config_probability": 0.7,
+	"mob_probability": 0.5,
+	"chest_probability": 0.4,
+	"fancy_genned_obstacle_probability": 0.8,
+	"fancy_genned_obstacles_available": 3,
+	"wep_probability": 0.7,
+	"level_size": 4,
+	"max_players": -1,
+	"starting_weapon": 1,
+	"starting_difficuly": 0,
+	"difficulty_scale:": 2,
+	"glitch_worlds": false
+}
