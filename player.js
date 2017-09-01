@@ -1,93 +1,164 @@
 var screen_width = 160;		        //Game Resolution Width
 var screen_height = 144;		    //Game Resolution Height
 var tile_size = 8;
-////////////////////////////////player////////////////////////////////////
 
-//
-// SERVER SIDE
-//
-var player={
+var player = {
 	data:{
-		x:9*8,				//x location in the current room
-		y:8*8,				//y location in the current room
-		x_map:0,
-		y_map:0,
-		dir:2,
-		strafe: false,
-		invincibility_counter: 0,
-		invincibility_limit:60,
-		move_while_attacking: false,
-		speed: 1,
-		speed_current: .25,
-		speed_limit: 4,
-		base_damage:1,
-		base_defense:1,
-		health:10,
-		health_regen:0,
-		health_max:10,
-		health_limit:256,
-		stamina:10,
-		stamina_regen:.1,
-		stamina_max:10,
-		stamina_limit:32,
-		curse:0,
-		cures_regen:.0001,
-		cures_max:10,
-		exp:0,
-		exp_past:0,
-		lvl:0,
-		lvl_next:10,
-		lvl_reward: 5,
-		status_count: -1,
-		status_new: -1,
-		h_anim_curr: 0,
-		b_anim_curr: 1,
-		h_anim_index:0,
-		b_anim_index:0,
-		h_anim_counter:-1,
-		b_anim_counter:-1,
-		headbob:0,
-		states: {
-			is_idle: true,
-			is_moving: false,
-			is_strafing: false,
-			is_invincible: false,
-			is_attacking: false,
-			is_dead: false,
-			is_stunned: false,
-			is_enflamed: false,
-			is_frozen: false,
-			is_electric: false,
-			is_wet: false
+		x: 9*8,				//x location in the current room
+		y: 8*8,				//y location in the current room
+		x_map: 0,			//x location of current room in map
+		y_map: 0,			//y location of current room in map
+		dir: 2,				//direction player is facing 0,1,2,3 -> up,left,right,down
+		strafe: false,		//flag for if the player is strafing
+		invincibility_counter: 0,		//frame counter for how long invincibility lasts
+		invincibility_limit: 60,		//max number of frames that invincibility can last
+		move_while_attacking: false,	//flag for if the player can move while attacking
+		speed: 1,			//current player speed (in pixels)
+		speed_current: .25,	//current speed of the player 
+		speed_limit: 4,		//max speed the player can reach
+		base_damage: 1,		//base damage the player can deal
+		base_defense: 1,	//base amount of damage the palyer can absorb
+		health: 10,			//current player health
+		health_regen: 0,	//health regeneration rate
+		health_max: 10,		//max health the player currently has
+		health_limit: 256,	//absolute max health the player can have
+		stamina: 10,		//current player stamina
+		stamina_regen: .1,	//stamina regeneration rate
+		stamina_max: 10,	//max stamina the player can currently have
+		stamina_limit: 32,	//absolute maximum stamina the player can have
+		curse: 0,			//current level of curse on the player
+		cures_regen: .0001,	//growth rate of the curse
+		cures_max: 10,		//max value the curse can reach
+		exp: 0,				//player's experience points
+		exp_past: 0,		//experience from past level-ups
+		lvl: 0,				//player's current level
+		lvl_next: 10,		//experience needed for the next level-up
+		lvl_reward: 5,		//reward to be applied to stats on level-up
+		status_count: -1,	//counter for how long a status bubble hangs over a player's head
+		status_new: -1,		//coutner for the status rising into position
+		h_anim_curr: 0,		//index of the head animation's current frame
+		b_anim_curr: 1,		//index of the body animation's current frame
+		h_anim_index: 0,	//index for the current head animation set
+		b_anim_index: 0,	//index for the current body animation set
+		h_anim_counter: -1,	//counter for the head animation's current frame
+		b_anim_counter: -1,	//counter for the body animation's current frame
+		headbob: 0,			//state of head bob (really it's just a pixel offset in y)
+		states: {			//states of the player
+			is_idle: true,			//player is standing still
+			is_moving: false,		//player is moving
+			is_strafing: false,		//player is strafing
+			is_invincible: false,	//player is invincible
+			is_attacking: false,	//player is attacking
+			is_dead: false,			//player is dead
+			is_stunned: false,		//player is stunned (unused)
+			is_enflamed: false,		//player is on fire (unused)
+			is_frozen: false,		//player is frozen (unused)
+			is_electric: false,		//player is electrified (unused)
+			is_wet: false			//player is wet (unused)
 		},
-		idle_timer:100,
-		paused:false,
-		hit_box:{x:-4, y:0, w:16, h: 8}
+		idle_timer: 100,	//timer while the player is idle, until their name displays
+		paused: false,		//flag for if the player is paused
+		hit_box: {			//hit-box for the player
+			x: -4,			//x offset from player x
+			y: 0,			//y offset from player y
+			w: 16,			//box width
+			h: 8			//box height
+		}
 	},
-	avatar:{
-		gender: 0,
-		skin: 0,
-		hair:0,
-		name:[0,0,0,0,0]
+	avatar: {		//object describing how the player looks as custimized by the user
+		gender: 0,	//0|1 -> male|female
+		skin: 0,	//0|1|2 -> white,yellow,brown
+		hair: 0,	//hair style
+		name: [		//name (in symbols) 
+			0,		//1st symbol
+			0,		//2nd symbol
+			0,		//3rd symbol
+			0,		//4th symbol
+			0		//5th symbol
+		]
 	},
-	inventory:{
-		keys:[],
-		augments:[],
-		augments_max: 4,
-		weapons:[],
-		weapons_max: 1,
-		weapons_index: 0,
-		abilities:[],
-		abilities_max:1
+	inventory: {			//object representing the player's inventory
+		keys: [],			//list of held keys
+		augments: [],		//list of power-ups
+		augments_max: 4,	//limit of how many power-ups the player can have
+		weapons: [],		//list of held weapons
+		weapons_max: 1,		//limit of how many weapons the player can have
+		weapons_index: 0,	//index of the currently selected weapon
+		abilities: [],		//list of held abilities
+		abilities_max: 1	//limit of how many abilites the player can have
 	},
-	death_bag: null,
-	id:-1,
-	pressed_keys:[],
-	transition_flag:-1,
-	reset_map:false,
-	local_audio: []
+	death_bag: null,		//holds the player's death bag
+	id: -1,					//id of the player
+	pressed_keys: [],		//list of pressed input keys
+	transition_flag: -1,	//flag describing if a/what kind of room transition
+	reset_map: false,		//flag noting if the user's map need's resettign
+	local_audio: []			//queue of sounds to playe on the user's client
 };
 
+var player_animations = [	//animation definitions for the player
+	[	//head idle 
+		[{x:48,y:0,h:16,w:16,dur:4}],
+		[{x:32,y:0,h:16,w:16,dur:4}],
+		[{x:0,y:0,h:16,w:16,dur:4}],
+		[{x:16,y:0,h:16,w:16,dur:4}]
+	],
+	[	//body idle
+		[{x:192,y:24,h:8,w:16,dur:4}],
+		[{x:192,y:16,h:8,w:16,dur:4}],
+		[{x:192,y:0,h:8,w:16,dur:4}],
+		[{x:192,y:8,h:8,w:16,dur:4}]
+	],
+	[	//body walk
+		[
+			{x:208,y:24,h:8,w:16,dur:4},
+			{x:192,y:24,h:8,w:16,dur:4},
+			{x:224,y:24,h:8,w:16,dur:4},
+			{x:192,y:24,h:8,w:16,dur:4}
+		],
+		[
+			{x:208,y:16,h:8,w:16,dur:4},
+			{x:192,y:16,h:8,w:16,dur:4},
+			{x:224,y:16,h:8,w:16,dur:4},
+			{x:192,y:16,h:8,w:16,dur:4}
+		],
+		[
+			{x:208,y:0,h:8,w:16,dur:4},
+			{x:192,y:0,h:8,w:16,dur:4},
+			{x:224,y:0,h:8,w:16,dur:4},
+			{x:192,y:0,h:8,w:16,dur:4}
+		],
+		[
+			{x:208,y:8,h:8,w:16,dur:4},
+			{x:192,y:8,h:8,w:16,dur:4},
+			{x:224,y:8,h:8,w:16,dur:4},
+			{x:192,y:8,h:8,w:16,dur:4}
+		]
+	],
+	[	//body attack
+		[
+			{x:240,y:24,h:8,w:16,dur:4},
+			{x:256,y:24,h:8,w:16,dur:4},
+			{x:272,y:24,h:8,w:16,dur:4}
+		],
+		[
+			{x:240,y:16,h:8,w:16,dur:4},
+			{x:256,y:16,h:8,w:16,dur:4},
+			{x:272,y:16,h:8,w:16,dur:4}
+		],
+		[
+			{x:240,y:0,h:8,w:16,dur:4},
+			{x:256,y:0,h:8,w:16,dur:4},
+			{x:272,y:0,h:8,w:16,dur:4}
+		],
+		[
+			{x:240,y:8,h:8,w:16,dur:4},
+			{x:256,y:8,h:8,w:16,dur:4},
+			{x:272,y:8,h:8,w:16,dur:4}
+		]
+	]
+];
+
+//initialize the player
 var player_init = function(player_obj) {
 	player_obj.data.health = 10;
 	player_obj.data.health_max = 10;
@@ -112,6 +183,7 @@ var player_init = function(player_obj) {
 	player_obj.data.exp = 0;
 	player_obj.data.lvl = 0;
 	
+	//defaults to a randomized avatar [DEPRICATED?] Overwritten by character creation
 	var set = Math.floor(Math.random()*4)*32;
 	
 	player_obj.avatar.body_style = set;
@@ -128,19 +200,22 @@ var player_init = function(player_obj) {
 	player_obj.local_audio = [];
 }
 
+//move the player across the screen/room
 var player_move = function(player_obj, dir, col_map) {
 	if (player_obj.data.states.is_moving == true) {
 		
+		//build up to player's speed in tiny increments. Othewixe if speed is too large, player might skip over objects
 		if (player_obj.data.speed_current < player_obj.data.speed) {
 			player_obj.data.speed_current+=.0625;
 		}
 		
-		if (dir == 0) {
-			if (player_obj.data.strafe == false) {
+		if (dir == 0) {	//facing up
+			if (player_obj.data.strafe == false) {	//if we aren't strafing, set the player's dir to up
 				player_obj.data.dir = 0;
 			}
 			var canMove = player_obj.data.speed_current;
-			if (player_obj.data.y-player_obj.data.speed_current <= 0) {
+			//only move if we aren't about to go off the top of the screen
+			if (player_obj.data.y-player_obj.data.speed_current <= 0) {	
 				canMove = 0 - (player_obj.data.y-player_obj.data.speed_current);
 				if (canMove < 0) {
 					canMove = 0;
@@ -148,11 +223,13 @@ var player_move = function(player_obj, dir, col_map) {
 				player_obj.data.y-=canMove;
 			} else {
 				canMove =  .25;
+				//move in tiney increments up to the calculated max displacement
 				while (canMove <= player_obj.data.speed_current) {
 					try {
+						//static collision detection with environment
 						if (col_map[Math.floor((player_obj.data.y-(.25))/8)][Math.floor(Math.floor(player_obj.data.x)/8)] ==0 &&
 							col_map[Math.floor((player_obj.data.y-(.25))/8)][Math.ceil(Math.ceil(player_obj.data.x)/8)] ==0) {
-							player_obj.data.y-=.25;
+							player_obj.data.y-=.25;	//all clear, make the move
 						} else {
 							break;
 						}
@@ -165,7 +242,7 @@ var player_move = function(player_obj, dir, col_map) {
 				}
 			}
 		}
-		if (dir == 1) {
+		if (dir == 1) {	//facing left
 			if (player_obj.data.strafe == false) {
 				player_obj.data.dir = 1;
 			}
@@ -198,10 +275,9 @@ var player_move = function(player_obj, dir, col_map) {
 						break;
 					}
 				}
-			}
-			
+			}	
 		}
-		if (dir == 2) {
+		if (dir == 2) {	//facing down
 			if (player_obj.data.strafe == false) {
 				player_obj.data.dir = 2;
 			}
@@ -230,10 +306,9 @@ var player_move = function(player_obj, dir, col_map) {
 						break;
 					}
 				}
-			}
-			
+			}	
 		}
-		if (dir == 3) {
+		if (dir == 3) {	//facing right
 			if (player_obj.data.strafe == false) {
 				player_obj.data.dir = 3;
 			}
@@ -267,8 +342,9 @@ var player_move = function(player_obj, dir, col_map) {
 	}
 }
 
+//updates made to the player per frame
 var player_update = function(player_obj, col_map, room_entities, player_augs){  
-	player_obj.local_audio = [];
+	player_obj.local_audio = [];	//clear the audio queue
 	if (player_obj.data.states.is_dead == false) {	//only update if alive
 		
 		//invincibility counter
@@ -542,6 +618,7 @@ var player_update = function(player_obj, col_map, room_entities, player_augs){
 	}	
 }
 
+//drop bag containing player inventory upon death
 function drop_bag(player_obj, contents) {
 	console.log("dropping bag");
 	if (player_obj.death_bag != null) {
@@ -557,6 +634,7 @@ function drop_bag(player_obj, contents) {
 	}
 }
 
+//updates made to the player's equipped weapon per frame
 function weapon_update(player_obj, wep, room_entities, room_col, audio_queue) {
 			
 	if (wep.actioning == true) {
@@ -672,6 +750,7 @@ function weapon_update(player_obj, wep, room_entities, room_col, audio_queue) {
 	}
 }
 
+//start action of weapon
 function weapon_action(wep, audio_queue) {
 	if (wep.actioning == false) {
 		//console.log("swingign")
@@ -682,6 +761,7 @@ function weapon_action(wep, audio_queue) {
 	}
 }
 
+//lightening attack update used with lightning sword
 var lightning_attack = function(player_obj, wep, room_entities) {	
 	
 	//console.log("initializing the tiles");
@@ -734,9 +814,9 @@ var lightning_attack = function(player_obj, wep, room_entities) {
 			wep.target_tiles.push(new_point);
 		}
 	}
-	
 }
 
+//updates for the lightning tiles spawned by the lightning sword
 var lightning_tile_update = function(player_obj, tile, room_contents) {
 	if (tile.active == true) {
 		if (tile.is_electric == false) {
@@ -785,10 +865,7 @@ var lightning_tile_update = function(player_obj, tile, room_contents) {
 	}
 }
 
-
-//
-// CLIENT SIDE
-//
+//renders the player to the screen
 var player_draw = function(player_obj) {  
 	if (player_obj.data.invincibility_counter%2 == 0) {
 		
@@ -903,33 +980,7 @@ var player_draw = function(player_obj) {
 	}
 }
 
-var player_animations = [
-	[	//h_idle
-		[{x:48,y:0,h:16,w:16,dur:4}],
-		[{x:32,y:0,h:16,w:16,dur:4}],
-		[{x:0,y:0,h:16,w:16,dur:4}],
-		[{x:16,y:0,h:16,w:16,dur:4}]
-	],
-	[	//b_idle
-		[{x:192,y:24,h:8,w:16,dur:4}],
-		[{x:192,y:16,h:8,w:16,dur:4}],
-		[{x:192,y:0,h:8,w:16,dur:4}],
-		[{x:192,y:8,h:8,w:16,dur:4}]
-	],
-	[	//b_walk
-		[{x:208,y:24,h:8,w:16,dur:4},{x:192,y:24,h:8,w:16,dur:4},{x:224,y:24,h:8,w:16,dur:4},{x:192,y:24,h:8,w:16,dur:4}],
-		[{x:208,y:16,h:8,w:16,dur:4},{x:192,y:16,h:8,w:16,dur:4},{x:224,y:16,h:8,w:16,dur:4},{x:192,y:16,h:8,w:16,dur:4}],
-		[{x:208,y:0,h:8,w:16,dur:4},{x:192,y:0,h:8,w:16,dur:4},{x:224,y:0,h:8,w:16,dur:4},{x:192,y:0,h:8,w:16,dur:4}],
-		[{x:208,y:8,h:8,w:16,dur:4},{x:192,y:8,h:8,w:16,dur:4},{x:224,y:8,h:8,w:16,dur:4},{x:192,y:8,h:8,w:16,dur:4}]
-	],
-	[	//b_attack
-		[{x:240,y:24,h:8,w:16,dur:4},{x:256,y:24,h:8,w:16,dur:4},	{x:272,y:24,h:8,w:16,dur:4}],
-		[{x:240,y:16,h:8,w:16,dur:4},{x:256,y:16,h:8,w:16,dur:4},	{x:272,y:16,h:8,w:16,dur:4}],
-		[{x:240,y:0,h:8,w:16,dur:4},	{x:256,y:0,h:8,w:16,dur:4},	{x:272,y:0,h:8,w:16,dur:4}],
-		[{x:240,y:8,h:8,w:16,dur:4},	{x:256,y:8,h:8,w:16,dur:4},	{x:272,y:8,h:8,w:16,dur:4}]
-	]
-];
-
+//renders the player's equipeed weapon
 function weapon_draw(player_obj, wep, render_batch) {
 	if (wep.actioning == true) {
 		/*ctx.drawImage(
@@ -960,19 +1011,42 @@ function weapon_draw(player_obj, wep, render_batch) {
 	}
 	
 	if (show_hitboxes == true) {
-		/*ctx.fillStyle = "red";
-	
-		ctx.fillRect(player_obj.data.x+wep.hitbox[player_obj.data.dir][wep.atkIndex].x, player_obj.data.y+wep.hitbox[player_obj.data.dir][wep.atkIndex].y, 1,1);
-		ctx.fillRect(player_obj.data.x+wep.hitbox[player_obj.data.dir][wep.atkIndex].x+wep.hitbox[player_obj.data.dir][wep.atkIndex].w, player_obj.data.y+wep.hitbox[player_obj.data.dir][wep.atkIndex].y, 1,1);
-		ctx.fillRect(player_obj.data.x+wep.hitbox[player_obj.data.dir][wep.atkIndex].x, player_obj.data.y+wep.hitbox[player_obj.data.dir][wep.atkIndex].y+wep.hitbox[player_obj.data.dir][wep.atkIndex].h, 1,1);
-		ctx.fillRect(player_obj.data.x+wep.hitbox[player_obj.data.dir][wep.atkIndex].x+wep.hitbox[player_obj.data.dir][wep.atkIndex].w, player_obj.data.y+wep.hitbox[player_obj.data.dir][wep.atkIndex].y+wep.hitbox[player_obj.data.dir][wep.atkIndex].h, 1,1);*/
-		render_queue.push({action: 2, color: "red", x: player_obj.data.x+wep.hitbox[player_obj.data.dir][wep.atkIndex].x, y: player_obj.data.y+wep.hitbox[player_obj.data.dir][wep.atkIndex].y, w: 1, h: 1});
-		render_queue.push({action: 2, color: "red", x: player_obj.data.x+wep.hitbox[player_obj.data.dir][wep.atkIndex].x+wep.hitbox[player_obj.data.dir][wep.atkIndex].w, y: player_obj.data.y+wep.hitbox[player_obj.data.dir][wep.atkIndex].y, w: 1, h: 1});
-		render_queue.push({action: 2, color: "red", x: player_obj.data.x+wep.hitbox[player_obj.data.dir][wep.atkIndex].x, y: player_obj.data.y+wep.hitbox[player_obj.data.dir][wep.atkIndex].y+wep.hitbox[player_obj.data.dir][wep.atkIndex].h, w: 1, h: 1});
-		render_queue.push({action: 2, color: "red", x: player_obj.data.x+wep.hitbox[player_obj.data.dir][wep.atkIndex].x+wep.hitbox[player_obj.data.dir][wep.atkIndex].w, y: player_obj.data.y+wep.hitbox[player_obj.data.dir][wep.atkIndex].y+wep.hitbox[player_obj.data.dir][wep.atkIndex].h, w: 1, h: 1});
+		render_queue.push({
+			action: 2, 
+			color: "red", 
+			x: player_obj.data.x+wep.hitbox[player_obj.data.dir][wep.atkIndex].x, 
+			y: player_obj.data.y+wep.hitbox[player_obj.data.dir][wep.atkIndex].y, 
+			w: 1, 
+			h: 1
+		});
+		render_queue.push({
+			action: 2, 
+			color: "red", 
+			x: player_obj.data.x+wep.hitbox[player_obj.data.dir][wep.atkIndex].x+wep.hitbox[player_obj.data.dir][wep.atkIndex].w, 
+			y: player_obj.data.y+wep.hitbox[player_obj.data.dir][wep.atkIndex].y, 
+			w: 1, 
+			h: 1
+		});
+		render_queue.push({
+			action: 2, 
+			color: "red", 
+			x: player_obj.data.x+wep.hitbox[player_obj.data.dir][wep.atkIndex].x, 
+			y: player_obj.data.y+wep.hitbox[player_obj.data.dir][wep.atkIndex].y+wep.hitbox[player_obj.data.dir][wep.atkIndex].h, 
+			w: 1, 
+			h: 1
+		});
+		render_queue.push({
+			action: 2, 
+			color: "red", 
+			x: player_obj.data.x+wep.hitbox[player_obj.data.dir][wep.atkIndex].x+wep.hitbox[player_obj.data.dir][wep.atkIndex].w, 
+			y: player_obj.data.y+wep.hitbox[player_obj.data.dir][wep.atkIndex].y+wep.hitbox[player_obj.data.dir][wep.atkIndex].h, 
+			w: 1, 
+			h: 1
+		});
 	}
 }
 
+//renders a lightning tile
 var lightning_tile_draw = function (tile) {
 	if (tile.active == true) {
 		if (tile.is_electric == false) {
@@ -1059,6 +1133,6 @@ try {
 	}	
 }
 catch (e) {
-	
+	console.log("ERROR; Unable to export player modules");
 }
 
