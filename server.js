@@ -1,37 +1,39 @@
 //dependencies/external files
-var express = require('express');
-var fs = require('fs');
-var async = require('async');
-var xml2js = require('xml2js');
-var _ = require('cloneextend');
-var body_parser = require('body-parser');
-var data_0 = require('./data_0');
-var data_entities = require('./data_entities');
-var data_augments = require('./data_augments');
-var data_weapons = require('./data_weapons');
-var data_mobs = require('./data_mobs.js');
-var data_player = require('./player.js');
-var files = fs.readdirSync('./assets/rooms');
-var inside_files = fs.readdirSync('./assets/rooms/inside');
-var outside_files = fs.readdirSync('./assets/rooms/outside');
-var config = require("./config.json");
-console.log(config);
+var express = require('express');			//express framework
+var fs = require('fs');						//file system
+var async = require('async');				//async
+var xml2js = require('xml2js');				//library to read xml files
+var _ = require('cloneextend');				//deep copy
+var body_parser = require('body-parser');	//middleware for express
+var config = require("./config.json");		//server/game config
+var data_0 = require('./data_0');				//resource containing color palette and basic room data
+var data_entities = require('./data_entities');	//resource containing data for in-game entities
+var data_augments = require('./data_augments');	//resource containing data for power-ups
+var data_weapons = require('./data_weapons');	//resource containing data for weapons
+var data_mobs = require('./data_mobs.js');		//resource containing data for mobs
+var data_player = require('./player.js');		//resource containing data for player
+var files = fs.readdirSync('./assets/rooms');					//list pre-made rooms (not inside or outside)
+var inside_files = fs.readdirSync('./assets/rooms/inside');		//list of pre-made "inside" rooms
+var outside_files = fs.readdirSync('./assets/rooms/outside');	//list of pre-made "outside" rooms
+
+console.log(config);	//log out the config at the server startup
 
 //constants
-const tile_size = 8;		//tile size
-const screen_width = 160;	//Game Resolution Width
-const screen_height = 144;	//Game Resolution Height
+const tile_size = 8;		//tile size (px)
+const screen_width = 160;	//Game Resolution Width (px)
+const screen_height = 144;	//Game Resolution Height (px)
 
-//tile map config vars
-var configs_all = [];		//list of all configurations
-var configs_inside = [];	//list of configs for inside rooms
-var configs_outside = [];	//list of configs for outside rooms
+//tile map configs (converted from xml)
+var configs_all = [];		//list of non inside-outside pre-made room configs
+var configs_inside = [];	//list of inside room configs
+var configs_outside = [];	//list of outside room configs
 var room_data,inside_data,outside_data;
 
-var player_list = [];	//list of all players+data
-var players_updating = [];
-var active_rooms = [];	//list of rooms players are currently in
-if (config.base_seed == -1) {
+var player_list = [];		//list of all player objects
+var players_updating = [];	//list of currenlty updating players
+var active_rooms = [];		//list of rooms where at least 1 playe is currently residing
+
+if (config.base_seed == -1) {	//if no seed was provided, generate a new one
 	config.base_seed = Math.floor(Math.random()*1000000);
 }
 var seed = config.base_seed;	//current permutation of base_seed
@@ -40,31 +42,32 @@ var seed = config.base_seed;	//current permutation of base_seed
 var start_room = {x:0,y:0};	//location of the starting room
 var boss_room = {x:0, y:0};	//location of the boss room
 var mobs_remaining = 0;		//total living mobs in the level
-var map = [];				//the entire game world/level
-var difficulty = config.starting_difficuly;
+var map = [];				//the entire game world/level consisting of all existing rooms and their contents
+var difficulty = config.starting_difficuly;	//difficulty of the game
 
 //game loop vars
 var start_time;		//start time of frame
 var end_time;		//end time of frame
 var cycle_time;		//total time a frame took
 var delay_time;		//delay needed until next frame
-var new_room;		//used in seeing what rooms need to be update
+var new_room;		//used in seeing what rooms need to be updated
 var coords;			//used in picking a room to update
 var local_players;	//list of players local to a room
 
 //express vars
-var app = express();			//express server
-var work_dir = __dirname;		//working directory
+var app = express();				//express server
+var work_dir = __dirname;			//working directory
 var parser = new xml2js.Parser();	//for parsing the Tiled maps
 
-main();
+main();	//kick off everything
 
+//main function. Build the level, start the event loop, start the server
 function main() {
 	build_configs(function() {
 		console.log('Base Seed: '+config.base_seed);
 
 		buildLevel(config.level_size);	//build level
-		main_loop();	//start game
+		main_loop();	//start event loop
 
 		//setup and start start the server
 		app.use(express.static(__dirname));
@@ -79,28 +82,32 @@ function main() {
 *BUILD ROOM CONFIGS
 *
 ********************/
+
+//reads in the Tiled map data, and converts it into usable configs
 function build_configs(my_callback) {
 	console.log('Building configs...');
 	async.parallel([
 		
-		function(callback) {
+		function (callback) {	//read all the "not inside or outside" room files and convert them to configs
 			async.eachSeries(files, function(file_name, callback) {
-				if (file_name.indexOf('.tmx') > -1) {
+				if (file_name.indexOf('.tmx') > -1) {	//target the Tiled map files
 					console.log(file_name);
-					var data = fs.readFileSync(__dirname + '/assets/rooms/'+file_name);
+					var data = fs.readFileSync(__dirname + '/assets/rooms/'+file_name);	//grab the data
 					parser.parseString(data, function (err, result) {
-						var config = [	
-							result.map.layer[0].data[0]._.replace(/\r\n/g,'').split(','),
-							result.map.layer[1].data[0]._.replace(/\r\n/g,'').split(','),
-							result.map.layer[2].data[0]._.replace(/\r\n/g,'').split(',')
-						];
-						configs_all.push({name:file_name.substring(0,file_name.length-4), map: config});
+						configs_all.push({
+							name: file_name.substring(0,file_name.length-4),
+							map: [
+								result.map.layer[0].data[0]._.replace(/\r\n/g,'').split(','),
+								result.map.layer[1].data[0]._.replace(/\r\n/g,'').split(','),
+								result.map.layer[2].data[0]._.replace(/\r\n/g,'').split(',')
+							]
+						});
 						callback();
 					});
-				} else {
+				} else {	//not a Tiled map, skip it
 					callback();
 				}	
-			}, function() {
+			}, function() {	//when done iterating through, convert the data to string
 				room_data = "var configs = [\n"
 				for (var i=0; i<configs_all.length; i++) {
 					room_data+='\t'+JSON.stringify(configs_all[i])+',\n'
@@ -110,24 +117,27 @@ function build_configs(my_callback) {
 				//fs.writeFileSync('configurations.js', file_data);
 			});
 		},
-		function(callback) {
+		
+		function (callback) {	//read all the "inside" room files and convert them to configs
 			async.eachSeries(inside_files, function(file_name, callback) {
-				if (file_name.indexOf('.tmx') > -1) {
+				if (file_name.indexOf('.tmx') > -1) {	//target Tiled map files
 					console.log(file_name);
-					var data = fs.readFileSync(__dirname + '/assets/rooms/inside/'+file_name);
+					var data = fs.readFileSync(__dirname + '/assets/rooms/inside/'+file_name);	//grab the data
 					parser.parseString(data, function (err, result) {
-						var config = [	
-							result.map.layer[0].data[0]._.replace(/\r\n/g,'').split(','),
-							result.map.layer[1].data[0]._.replace(/\r\n/g,'').split(','),
-							result.map.layer[2].data[0]._.replace(/\r\n/g,'').split(',')
-						];
-						configs_inside.push({name:file_name.substring(0,file_name.length-4), map: config});
+						configs_inside.push({
+							name:file_name.substring(0,file_name.length-4),
+							map: [
+								result.map.layer[0].data[0]._.replace(/\r\n/g,'').split(','),
+								result.map.layer[1].data[0]._.replace(/\r\n/g,'').split(','),
+								result.map.layer[2].data[0]._.replace(/\r\n/g,'').split(',')
+							]
+						});
 						callback();
 					});
 				} else {
 					callback();
 				}	
-			}, function() {
+			}, function() {	//when done iterating through, conver the data to string
 				inside_data = "var inside_configs = [\n"
 				for (var i=0; i<configs_inside.length; i++) {
 					inside_data+='\t'+JSON.stringify(configs_inside[i])+',\n'
@@ -137,24 +147,27 @@ function build_configs(my_callback) {
 				//fs.writeFileSync('configurations.js', file_data);
 			});
 		},
-		function(callback) {
+		
+		function (callback) {	//read all the "outside" room files and convert them to configs
 			async.eachSeries(outside_files, function(file_name, callback) {
-				if (file_name.indexOf('.tmx') > -1) {
+				if (file_name.indexOf('.tmx') > -1) {	//target Tiled map files
 					console.log(file_name);
-					var data = fs.readFileSync(__dirname + '/assets/rooms/outside/'+file_name);
+					var data = fs.readFileSync(__dirname + '/assets/rooms/outside/'+file_name);	//grab the data
 					parser.parseString(data, function (err, result) {
-						var config = [	
-							result.map.layer[0].data[0]._.replace(/\r\n/g,'').split(','),
-							result.map.layer[1].data[0]._.replace(/\r\n/g,'').split(','),
-							result.map.layer[2].data[0]._.replace(/\r\n/g,'').split(',')
-						];
-						configs_outside.push({name:file_name.substring(0,file_name.length-4), map: config});
+						configs_outside.push({
+							name:file_name.substring(0,file_name.length-4),
+							map: [
+								result.map.layer[0].data[0]._.replace(/\r\n/g,'').split(','),
+								result.map.layer[1].data[0]._.replace(/\r\n/g,'').split(','),
+								result.map.layer[2].data[0]._.replace(/\r\n/g,'').split(',')
+							]
+						});
 						callback();
 					});
 				} else {
 					callback();
 				}	
-			}, function() {
+			}, function() {	//when done iterating through, convert the data to string 
 				outside_data = "var outside_configs = [\n"
 				for (var i=0; i<configs_outside.length; i++) {
 					outside_data+='\t'+JSON.stringify(configs_outside[i])+',\n'
@@ -164,7 +177,7 @@ function build_configs(my_callback) {
 				//fs.writeFileSync('configurations.js', file_data);
 			});
 		}
-	],function() {
+	],function() {	//finally, write all the data to the configuarations file!
 		var final_data = room_data+"\n"+inside_data+"\n"+outside_data;
 		fs.writeFileSync('configurations.js',final_data);
 		my_callback();
@@ -197,7 +210,6 @@ function buildConfig(config_name, list) {
 *GENERATE THE LEVEL
 *
 ********************/
-
 function buildLevel(size, prev) {
 	mobs_remaining = 0;                //reset the remaining mobs
 	if (prev == null) {
@@ -217,18 +229,31 @@ function buildLevel(size, prev) {
 	var genIndex = 0;           //iterator for number of generations
 	var minRooms = 3+size;      //the minimum required number of rooms (for the current build)
 	var numRooms = 0;           //the current number of rooms in the map (for the current build)
-	var numAugs = 0;
-	var numChests = 0;
-	var numKeys = 0;
-	var floor_pal = [190];	//list of base tiles available for the floor pallettes in this level (always has 190)
-	var pos_floors = [191,192,222,223,224,254,255,256]; 	//list of available base floor tiles to pic from
+	var numAugs = 0;			//number of powerups added to the map
+	var numChests = 0;			//number of chests added to the map
+	var numKeys = 0;			//number of keys added to the map
+	var floor_pal = [190];		//list of base tiles available for the floor pallettes in this level (always has 190)
+	var pos_floors = [			//list of available base floor tiles to pic from
+		191,
+		192,
+		222,
+		223,
+		224,
+		254,
+		255,
+		256
+	];
 	var wall_pal = 0;			//indicates the wallset for this level
-	var floor_style = 0;	//indicates the floor style for this level
-	var lvl_pal = 0;		//indicates the color pallette for this level
-	var genned_obsticals = [285,317];
-	var fancy_genned_obsticals = Math.floor(sRandom()*config.fancy_genned_obstacles_available)*2;
+	var floor_style = 0;		//indicates the floor style for this level
+	var lvl_pal = 0;			//indicates the color pallette for this level
+	var genned_obstacles = [	//tiles for types of generated obstacles
+		285,
+		317
+	];
+	//pick a type of generatable object to ue when generating room obstacles
+	var fancy_genned_obstacles = Math.floor(sRandom()*config.fancy_genned_obstacles_available)*2;
 	
-	wall_pal = Math.floor(sRandom()*config.walls_available)*4;		//pick a tile set for the walls
+	wall_pal = Math.floor(sRandom()*config.walls_available)*4;	//pick a tile set for the walls
 	
 	switch (wall_pal) {
 		case	0:	fancy_genned_obsticals = 1*2;
@@ -253,8 +278,8 @@ function buildLevel(size, prev) {
 	
 	floor_pal.push(286+Math.floor(sRandom()*3));			//pick an animated tile
 	lvl_pal = Math.floor(sRandom()*data_0.pals.length-1)+1;	//pick a color pallette			
-	for (i=0; i< genned_obsticals.length; i++) {
-		genned_obsticals[i] = genned_obsticals[i]-wall_pal;
+	for (i=0; i< genned_obstacles.length; i++) {
+		genned_obstacles[i] = genned_obstacles[i]-wall_pal;
 	}
 	
 	function expandMap(y, x) {	//expands the map
@@ -344,13 +369,13 @@ function buildLevel(size, prev) {
 		if (map[y][x].open == false) {	//inside
 			for (var c=2; c <18; c++) {
 				for (var d=2; d<14; d++) {
-					map[y][x].map[1][d][c] = genned_obsticals[Math.floor(sRandom()*genned_obsticals.length)];
+					map[y][x].map[1][d][c] = genned_obstacles[Math.floor(sRandom()*genned_obstacles.length)];
 				}
 			}
 		} else {	//outisde
 			for (var c=1; c <19; c++) {
 				for (var d=1; d<15; d++) {
-					map[y][x].map[1][d][c] = genned_obsticals[Math.floor(sRandom()*genned_obsticals.length)];
+					map[y][x].map[1][d][c] = genned_obstacles[Math.floor(sRandom()*genned_obstacles.length)];
 				}
 			}
 		}
@@ -469,28 +494,28 @@ function buildLevel(size, prev) {
 		} else {
 			for (var c=1; c <18; c++) {
 				for (var d=1; d<15; d++) {
-					if (genned_obsticals.indexOf(map[y][x].map[1][d][c]) > -1 && 
-						genned_obsticals.indexOf(map[y][x].map[1][d][c+1]) > -1 && 
-						genned_obsticals.indexOf(map[y][x].map[1][d+1][c]) > -1 && 
-						genned_obsticals.indexOf(map[y][x].map[1][d+1][c+1]) > -1 && 
+					if (genned_obstacles.indexOf(map[y][x].map[1][d][c]) > -1 && 
+						genned_obstacles.indexOf(map[y][x].map[1][d][c+1]) > -1 && 
+						genned_obstacles.indexOf(map[y][x].map[1][d+1][c]) > -1 && 
+						genned_obstacles.indexOf(map[y][x].map[1][d+1][c+1]) > -1 && 
 						sRandom() < config.fancy_genned_obstacle_probability ) {
 						
 						//tree base
-						map[y][x].map[1][d][c] = 528-fancy_genned_obsticals;
-						map[y][x].map[1][d][c+1] = 529-fancy_genned_obsticals;						
-						map[y][x].map[1][d+1][c] = 560-fancy_genned_obsticals;
-						map[y][x].map[1][d+1][c+1] = 561-fancy_genned_obsticals;
+						map[y][x].map[1][d][c] = 528-fancy_genned_obstacles;
+						map[y][x].map[1][d][c+1] = 529-fancy_genned_obstacles;						
+						map[y][x].map[1][d+1][c] = 560-fancy_genned_obstacles;
+						map[y][x].map[1][d+1][c+1] = 561-fancy_genned_obstacles;
 						/*map[y][x].map[0][d][c] = 444;
 						map[y][x].map[0][d][c+1] = 444;						
 						map[y][x].map[0][d+1][c] = 444;
 						map[y][x].map[0][d+1][c+1] = 444;*/
 						if (d-1 >= 0) {
-							map[y][x].map[2][d-1][c] = 496-fancy_genned_obsticals;
-							map[y][x].map[2][d-1][c+1] = 497-fancy_genned_obsticals;
+							map[y][x].map[2][d-1][c] = 496-fancy_genned_obstacles;
+							map[y][x].map[2][d-1][c+1] = 497-fancy_genned_obstacles;
 						}
 						if (d-2 >= 0) {
-							map[y][x].map[2][d-2][c] = 464-fancy_genned_obsticals;
-							map[y][x].map[2][d-2][c+1] = 465-fancy_genned_obsticals;
+							map[y][x].map[2][d-2][c] = 464-fancy_genned_obstacles;
+							map[y][x].map[2][d-2][c+1] = 465-fancy_genned_obstacles;
 						}
 					}
 				}
@@ -503,7 +528,7 @@ function buildLevel(size, prev) {
 		for (var c=0; c<width; c++) {
 			for (var d=0; d<length; d++) {
 				if (room_y+c <16 && room_x+d<20 && room_y+c>=0 && room_x+d>=0) {
-					if (genned_obsticals.indexOf(map[map_y][map_x].map[1][room_y+c][room_x+d]) > -1) {
+					if (genned_obstacles.indexOf(map[map_y][map_x].map[1][room_y+c][room_x+d]) > -1) {
 						map[map_y][map_x].map[1][room_y+c][room_x+d] = 0;
 						claimed.push(JSON.stringify({x: room_x+d,y: room_y+c}));
 					}
@@ -525,8 +550,8 @@ function buildLevel(size, prev) {
 			var spot_to_check = JSON.parse(spots_to_check[0]);
 			if (spot_to_check.y-1 >=1) {
 				if (map[map_y][map_x].map[1][spot_to_check.y-1][spot_to_check.x] == 0 && 
-					congruent_spots.indexOf(JSON.stringify({x:spot_to_check.x,y:spot_to_check.y-1})) < 0 && 
-					spots_to_check.indexOf(JSON.stringify({x:spot_to_check.x,y:spot_to_check.y-1})) < 0) {
+					congruent_spots.indexOf(JSON.stringify({x:spot_to_check.x, y:spot_to_check.y-1})) < 0 && 
+					spots_to_check.indexOf(JSON.stringify({x:spot_to_check.x, y:spot_to_check.y-1})) < 0) {
 					
 					spots_to_check.push(JSON.stringify({x:spot_to_check.x,y:spot_to_check.y-1}));
 				}
@@ -991,7 +1016,7 @@ function buildLevel(size, prev) {
 		for (j=0; j<map[i].length; j++) {
 			
 			if (map[i][j] != 0 && map[i][j].obs == 0 && !(i == start_room.y && j == start_room.x) && !(i == boss_room.y && j == boss_room.x)) {
-				if (sRandom() > config.config_probability) {	//generate obsticles
+				if (sRandom() > config.config_probability) {	//generate obstacles
 					genRoom(i,j);
 				} else {	//or use a pre made one
 					var config_list;
