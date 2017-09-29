@@ -1,8 +1,6 @@
 Daily Dungeon
 A multiplayer randomly generated dungeon crawler.
-A multiplayer version of Dungeon JS featuring more enemies, more items, new weapons, a (functional but unfinished) boss monster, and
-character creation! The server is a Node.js Express server that provides API endpoints (over http because I didn't know better at the
-time) for clients to get and post data. When the boss is defeated, the world is expanded and the difficulty increases.
+A multiplayer version of Dungeon JS featuring more enemies, more items, new weapons, a (functional but unfinished) boss monster, and character creation! The server is a Node.js Express server that provides API endpoints (over http because I didn't know better at the time) for clients to get and post data. When the boss is defeated, the world is expanded and the difficulty increases.
 
 
 Daily Dungeon Install instructions:
