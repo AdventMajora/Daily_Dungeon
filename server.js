@@ -186,7 +186,7 @@ function build_configs(my_callback) {
 
 //fetch a room config
 function buildConfig(config_name, list) {
-	var formattedConfig = [[],[],[]];
+	var formatted_config = [[],[],[]];
 	var layer = [];
 	for (var i=0; i<list.length; i++) {
 		if (config_name == list[i].name) {
@@ -196,10 +196,10 @@ function buildConfig(config_name, list) {
 					for (var k=0; k<20; k++) {
 						layer.push(list[i].map[l][(j*20)+k]);
 					}
-					formattedConfig[l].push(layer);
+					formatted_config[l].push(layer);
 				}
 			}
-			return formattedConfig;
+			return formatted_config;
 		}
 	}
 }
@@ -211,18 +211,7 @@ function buildConfig(config_name, list) {
 *
 ********************/
 function buildLevel(size, prev) {
-	mobs_remaining = 0;                //reset the remaining mobs
-	if (prev == null) {
-		start_room = {x:1, y:1};
-	}
 	
-	if (prev == null) {         //if a fresh map, initialize it
-		map = [ 
-			[0,0,0],
-			[0,data_0.empty,0],
-			[0,0,0]
-		];
-	}
 	var emptList = [];          //holds the list of "data_0.empty" rooms needing to be expanded from
 	var rand;                   //for RNG
 	var i,j,k;                  //iterators
@@ -234,14 +223,9 @@ function buildLevel(size, prev) {
 	var numKeys = 0;			//number of keys added to the map
 	var floor_pal = [190];		//list of base tiles available for the floor pallettes in this level (always has 190)
 	var pos_floors = [			//list of available base floor tiles to pic from
-		191,
-		192,
-		222,
-		223,
-		224,
-		254,
-		255,
-		256
+		191,192,
+		222,223,224,
+		254,255,256
 	];
 	var wall_pal = 0;			//indicates the wallset for this level
 	var floor_style = 0;		//indicates the floor style for this level
@@ -253,9 +237,18 @@ function buildLevel(size, prev) {
 	//pick a type of generatable object to ue when generating room obstacles
 	var fancy_genned_obstacles = Math.floor(sRandom()*config.fancy_genned_obstacles_available)*2;
 	
+	if (prev == null) {	//if we aren't working off of a previously made map
+		start_room = {x:1, y:1};	//default the starting room to 1,1
+		map = [						//initialize the map
+			[0,0,0],
+			[0,data_0.empty,0],
+			[0,0,0]
+		];
+	}
+	
 	wall_pal = Math.floor(sRandom()*config.walls_available)*4;	//pick a tile set for the walls
 	
-	switch (wall_pal) {
+	switch (wall_pal) {	//adjust the genned obsticals to match the wall set (ie: no trees in building)
 		case	0:	fancy_genned_obsticals = 1*2;
 					break;
 		case	4:	fancy_genned_obsticals = 0*2;
@@ -267,24 +260,28 @@ function buildLevel(size, prev) {
 		case	16:	fancy_genned_obsticals = 1*2;
 					break;
 	}
-	//wall_pal = wall_pal*4;
+	
 	//make a floor palette
-	floor_style = wall_pal;	//pick a tile set for the floor (MAKE IT MATCH THE WALLS)
+	floor_style = wall_pal;	//pick a tile set for the floor (this equals the wall set, otherwise they would mismatch) 
 	for (i=0; i<2; i++) {
 		rand = Math.floor(sRandom()*pos_floors.length);	//pick random tile
 		floor_pal.push(pos_floors[rand]);	//add to working pallette
 		pos_floors.splice(rand, 1);			//remove tile (so no repeats)
 	}				
+	floor_pal.push(286+Math.floor(sRandom()*3));	//pick an animated tile
 	
-	floor_pal.push(286+Math.floor(sRandom()*3));			//pick an animated tile
-	lvl_pal = Math.floor(sRandom()*data_0.pals.length-1)+1;	//pick a color pallette			
+	lvl_pal = Math.floor(sRandom()*data_0.pals.length-1)+1;	//pick a color pallette	
+	
+	//adjust the genned obstacles [Note, figure out why I do this. I forgot]
 	for (i=0; i< genned_obstacles.length; i++) {
 		genned_obstacles[i] = genned_obstacles[i]-wall_pal;
 	}
 	
-	function expandMap(y, x) {	//expands the map
+	mobs_remaining = 0;	//reset the remaining mobs
+	
+	function expandMap(y, x) {	//expands the map by one row or column
 		
-		if (y == 0) {
+		if (y == 0) {	//top edge -> insert new row before
 			var newRow = [];
 			for (c=0; c<map[0].length; c++) {
 				newRow.push(0);
@@ -302,7 +299,7 @@ function buildLevel(size, prev) {
 				emptList[c].y++;
 			}
 		}
-		if (x == 0) {
+		if (x == 0) {	//left edge -> insert new column before
 			for (c=0; c<map.length; c++) {
 				map[c].unshift(0);
 			}
@@ -318,14 +315,14 @@ function buildLevel(size, prev) {
 				emptList[c].x++;
 			}
 		}
-		if (y == map.length-1) {
+		if (y == map.length-1) {	//bottom edge -> insert new row after
 			var newRow = [];
 			for (c=0; c<map[0].length; c++) {
 				newRow.push(0);
 			}
 			map.push(newRow);
 		}
-		if (x == map[emptList[j].y].length-1) {
+		if (x == map[emptList[j].y].length-1) {	//right edge -> insert new column after
 			for (c=0; c<map.length; c++) {
 				map[c].push(0);
 			}
@@ -334,13 +331,13 @@ function buildLevel(size, prev) {
 	
 	function genFloor(y, x, style) {	//generates a floor
 		
-		var floorRow = [];
-		var floorRand;
+		var floorRow = [];	//row used to construct full floor map
+		var floorRand;	//rand
 		for (var k=0; k<16; k++) {
 			floorRow = [];
 			for (var l=0; l<20; l++) {
 				
-				floorRand = Math.floor(sRandom()*8);
+				floorRand = Math.floor(sRandom()*8);	//roll for floor tile
 				
 				if (floorRand == 0) {
 					floorRow.push(floor_pal[3]);
@@ -355,122 +352,129 @@ function buildLevel(size, prev) {
 					floorRow.push(floor_pal[0]);
 				}
 			}
-			map[y][x].map[0][k] = (JSON.parse(JSON.stringify(floorRow)));
+			map[y][x].map[0][k] = (JSON.parse(JSON.stringify(floorRow)));	//apply the genned floor
 		}
 	}
 	
-	function genRoom(y, x) {
+	function genRoom(y, x) {	//generates a room of obstacles
 		
-		var claimed_spots = [];
-		var expansion_points = [];
-		var starting_spots = [];
+		var claimed_spots = [];		//list of occupied tiles
+		var expansion_points = [];	//list of tiles eligible to be expanded from
+		var starting_spots = [];	//list of spots that must be open for players to enter the room
+		var min_expansions = 8;		//minimum number of expansions a room must gro through
 		
-		//init room
+		//fill the room with random genned obstacles
 		if (map[y][x].open == false) {	//inside
 			for (var c=2; c <18; c++) {
 				for (var d=2; d<14; d++) {
 					map[y][x].map[1][d][c] = genned_obstacles[Math.floor(sRandom()*genned_obstacles.length)];
 				}
 			}
+			//check for edges with doors (configs of length 2)
+			if (map[y][x].config[0].length == 2) {
+				clear_area(y,x,2,8,4,4,claimed_spots);	//clear the area of obstacles
+				claimed_spots.push(JSON.stringify({x:8,y:2}));	//note the spot as claimed
+				starting_spots.push({x:8,y:2});	//note the spot as starting
+			}
+			if (map[y][x].config[1].length == 2) {
+				clear_area(y,x,6,2,4,4,claimed_spots);	//clear the area of obstacles
+				claimed_spots.push(JSON.stringify({x:2,y:6}));	//note the spot as claimed
+				starting_spots.push({x:2,y:6});	//note the spot as starting
+			}
+			if (map[y][x].config[2].length == 2) {
+				clear_area(y,x,10,8,4,4,claimed_spots);	//clear the area of obstacles
+				claimed_spots.push(JSON.stringify({x:8,y:10}));	//note the spot as claimed
+				starting_spots.push({x:8,y:10});	//note the spot as starting
+			}
+			if (map[y][x].config[3].length == 2) {
+				clear_area(y,x,6,14,4,4,claimed_spots);	//clear the area of obstacles
+				claimed_spots.push(JSON.stringify({x:14,y:6}));	//note the spot as claimed
+				starting_spots.push({x:14,y:6});	//note the spot as starting
+			}
+			
 		} else {	//outisde
 			for (var c=1; c <19; c++) {
 				for (var d=1; d<15; d++) {
 					map[y][x].map[1][d][c] = genned_obstacles[Math.floor(sRandom()*genned_obstacles.length)];
 				}
 			}
-		}
-		
-		if (map[y][x].open == false) {
+			
+			//door openings
 			if (map[y][x].config[0].length == 2) {
-				clear_area(y,x,2,8,4,4,claimed_spots);
-				claimed_spots.push(JSON.stringify({x:8,y:2}));
-				starting_spots.push({x:8,y:2});
-			}
-			if (map[y][x].config[1].length == 2) {
-				clear_area(y,x,6,2,4,4,claimed_spots);
-				claimed_spots.push(JSON.stringify({x:2,y:6}));
-				starting_spots.push({x:2,y:6});
-			}
-			if (map[y][x].config[2].length == 2) {
-				clear_area(y,x,10,8,4,4,claimed_spots);
-				claimed_spots.push(JSON.stringify({x:8,y:10}));
-				starting_spots.push({x:8,y:10});
-			}
-			if (map[y][x].config[3].length == 2) {
-				clear_area(y,x,6,14,4,4,claimed_spots);
-				claimed_spots.push(JSON.stringify({x:14,y:6}));
-				starting_spots.push({x:14,y:6});
-			}
-		} else {
-			if (map[y][x].config[0].length == 2) {
-				clear_area(y,x,1,8,4,4,claimed_spots);
-				claimed_spots.push(JSON.stringify({x:8,y:1}));
+				clear_area(y,x,1,8,4,4,claimed_spots);	//clear the area of obstacles
+				claimed_spots.push(JSON.stringify({x:8,y:1}));	//note the spot as claimed
 				starting_spots.push({x:8,y:1});
 			}
 			if (map[y][x].config[1].length == 2) {
-				clear_area(y,x,6,1,4,4,claimed_spots);
-				claimed_spots.push(JSON.stringify({x:1,y:6}));
-				starting_spots.push({x:1,y:6});
+				clear_area(y,x,6,1,4,4,claimed_spots);	//clear the area of obstacles
+				claimed_spots.push(JSON.stringify({x:1,y:6}));	//note the spot as claimed
+				starting_spots.push({x:1,y:6});	//note the spot as starting
 			}
 			if (map[y][x].config[2].length == 2) {
-				clear_area(y,x,11,8,4,4,claimed_spots);
-				claimed_spots.push(JSON.stringify({x:8,y:11}));
-				starting_spots.push({x:8,y:11});
+				clear_area(y,x,11,8,4,4,claimed_spots);	//clear the area of obstacles
+				claimed_spots.push(JSON.stringify({x:8,y:11}));	//note the spot as claimed
+				starting_spots.push({x:8,y:11});	//note the spot as starting
 			}
 			if (map[y][x].config[3].length == 2) {
-				clear_area(y,x,6,15,4,4,claimed_spots);
-				claimed_spots.push(JSON.stringify({x:15,y:6}));
-				starting_spots.push({x:15,y:6});
+				clear_area(y,x,6,15,4,4,claimed_spots);	//clear the area of obstacles
+				claimed_spots.push(JSON.stringify({x:15,y:6}));	//note the spot as claimed
+				starting_spots.push({x:15,y:6});	//note the spot as starting
 			}
 			
+			//open rooms have large opnenings as well as door openings
 			if (map[y][x].config[0].length > 2) {
-				clear_area(y,x,1,1,2,18,claimed_spots);
-				claimed_spots.push(JSON.stringify({x:1,y:1}));
-				starting_spots.push({x:1,y:1});
+				clear_area(y,x,1,1,2,18,claimed_spots);	//clear the area of obstacles
+				claimed_spots.push(JSON.stringify({x:1,y:1}));	//note the spot as claimed
+				starting_spots.push({x:1,y:1});	//note the spot as starting
 			}
 			if (map[y][x].config[1].length > 2) {
-				clear_area(y,x,1,1,14,2,claimed_spots);
-				claimed_spots.push(JSON.stringify({x:1,y:1}));
-				starting_spots.push({x:1,y:1});
+				clear_area(y,x,1,1,14,2,claimed_spots);	//clear the area of obstacles
+				claimed_spots.push(JSON.stringify({x:1,y:1}));	//note the spot as claimed
+				starting_spots.push({x:1,y:1});	//note the spot as starting
 			}
-			if (map[y][x].config[2].length > 2) {
-				clear_area(y,x,13,1,2,18,claimed_spots);
-				claimed_spots.push(JSON.stringify({x:1,y:13}));
-				starting_spots.push({x:1,y:13});
+			if (map[y][x].config[2].length > 2) {	//note the spot as starting
+				clear_area(y,x,13,1,2,18,claimed_spots);	//clear the area of obstacles
+				claimed_spots.push(JSON.stringify({x:1,y:13}));	//note the spot as claimed
+				starting_spots.push({x:1,y:13});	//note the spot as starting
 			}
 			if (map[y][x].config[3].length > 2) {
-				clear_area(y,x,1,17,14,2,claimed_spots);
-				claimed_spots.push(JSON.stringify({x:17,y:1}));
-				starting_spots.push({x:17,y:1});
+				clear_area(y,x,1,17,14,2,claimed_spots);	//clear the area of obstacles
+				claimed_spots.push(JSON.stringify({x:17,y:1}));	//note the spot as claimed
+				starting_spots.push({x:17,y:1});	//note the spot as starting
 			}
 		}
 		
-		var min_expansions = 8;
-		
+		//while we haven't met the minimum expansions and the starting spots aren't reachable from each other,
 		while (!check_connection(y,x,starting_spots) || min_expansions > 0) {
-			//var expansion_radius = Math.floor((sRandom()*3)+2);
 			var expansion_radius = 2;
+			
+			//build a list of expansion points 
 			for (var c=0; c<claimed_spots.length; c++) {
 				expansion_points = expansion_points.concat(get_expansions(JSON.parse(claimed_spots[c]),expansion_radius));
 			}
-			//thin out selection
+			//thin out selection. Remove repeats, claimed spots, and empty spots
 			for (var c=0; c<expansion_points.length; c++) {
 				if (expansion_points.indexOf(expansion_points[c]) != c || claimed_spots.indexOf(expansion_points[c]) >= 0 || map[y][x].map[1][JSON.parse(expansion_points[c]).y][JSON.parse(expansion_points[c]).x] == 0) {
 					expansion_points.splice(c,1);
 					c--;
 				}
 			}
+			
+			//exit if we have 0 expansion points
 			if (expansion_points.length < 1) {
 				break;
 			}
-			var rand_spot = Math.floor(sRandom()*expansion_points.length);
-			var expansion_size = Math.floor((sRandom()*3)+2);
-			claimed_spots.push(expansion_points[rand_spot]);
+			
+			var rand_spot = Math.floor(sRandom()*expansion_points.length);	//pick a random expansion point to expand
+			var expansion_size = Math.floor((sRandom()*3)+2);	//roll for a size
+			claimed_spots.push(expansion_points[rand_spot]);	//claim the spot
+			//expand/clear out the obstacles
 			clear_area(y,x,JSON.parse(expansion_points[rand_spot]).y,JSON.parse(expansion_points[rand_spot]).x,expansion_size,expansion_size, claimed_spots);
 			min_expansions--;
 		}
 		
-		if (map[y][x].open == false) {
+		//build the fancy genned obstacles
+		if (map[y][x].open == false) {	//inside
 			for (var c=2; c <17; c++) {
 				for (var d=2; d<14; d++) {
 					/*if (map[y][x].map[1][d][c] == 441 && map[y][x].map[1][d][c+1] == 441 && Math.floor(sRandom()*3) == 0) {
@@ -491,7 +495,7 @@ function buildLevel(size, prev) {
 					}*/
 				}
 			}
-		} else {
+		} else {	//outside
 			for (var c=1; c <18; c++) {
 				for (var d=1; d<15; d++) {
 					if (genned_obstacles.indexOf(map[y][x].map[1][d][c]) > -1 && 
@@ -523,8 +527,8 @@ function buildLevel(size, prev) {
 		}
 	}
 	
+	//clears an area of a map of obstacles
 	function clear_area(map_y,map_x,room_y,room_x, width, length, claimed) {
-		
 		for (var c=0; c<width; c++) {
 			for (var d=0; d<length; d++) {
 				if (room_y+c <16 && room_x+d<20 && room_y+c>=0 && room_x+d>=0) {
@@ -537,6 +541,7 @@ function buildLevel(size, prev) {
 		}
 	}
 	
+	//checks to see if all starting points are reachable from map_x,map_y
 	function check_connection(map_y, map_x, starting_points) {
 		var congruent_spots = [];
 		var spots_to_check = [];
@@ -545,7 +550,7 @@ function buildLevel(size, prev) {
 		
 		spots_to_check.push(JSON.stringify(starting_points[rand_start]));
 		
-		while(spots_to_check.length != 0) {
+		while(spots_to_check.length != 0) {	//check for every starting spot
 			var found_points = [];
 			var spot_to_check = JSON.parse(spots_to_check[0]);
 			if (spot_to_check.y-1 >=1) {
@@ -598,6 +603,7 @@ function buildLevel(size, prev) {
 		return connected;
 	}
 	
+	//get a list of points to expand from
 	function get_expansions(point, radius) {
 		var points = [];
 		for (var c=-(radius-2); c<(radius-1); c++) {
@@ -623,6 +629,8 @@ function buildLevel(size, prev) {
 		return points;
 	}
 	
+	
+	//map generation
 	console.log("expanding map...");
 	for (i=0; i<size; i++) {
 		
