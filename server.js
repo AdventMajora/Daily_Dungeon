@@ -1,3 +1,16 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *                                                                           *
+ *  SERVER					                                                 *
+ *  by Elen Norvell                                                          *
+ *                                                                           *
+ *  The Daily Dungeon game server. Simulates the game logic, and exposes     *
+ *  API's for clients to read data and provide player input.		         *
+ * 	Settings are defined in "config.json"                					 *
+ *                                                                           *
+ *  run with: node server.js												 *	
+ *                                                                           *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 //dependencies/external files
 var express = require('express');			//express framework
 var fs = require('fs');						//file system
@@ -205,11 +218,11 @@ function buildConfig(config_name, list) {
 }
 
 
-/********************
-*
-*GENERATE THE LEVEL
-*
-********************/
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *                                                                           *
+ *  GENERATE THE LEVEL                                                       *
+ *                                                                           *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 function buildLevel(size, prev) {
 	
 	var emptList = [];          //holds the list of "data_0.empty" rooms needing to be expanded from
@@ -543,60 +556,55 @@ function buildLevel(size, prev) {
 	
 	//checks to see if all starting points are reachable from map_x,map_y
 	function check_connection(map_y, map_x, starting_points) {
-		var congruent_spots = [];
-		var spots_to_check = [];
+		var contiguous_spots = [];	//list of contiguous tiles (like a path)
+		var spots_to_check = [];	//list of spots to check
 		
 		var rand_start = Math.floor(sRandom()*starting_points.length);
 		
-		spots_to_check.push(JSON.stringify(starting_points[rand_start]));
+		spots_to_check.push(JSON.stringify(starting_points[rand_start]));	//start with the starting points
 		
 		while(spots_to_check.length != 0) {	//check for every starting spot
 			var found_points = [];
 			var spot_to_check = JSON.parse(spots_to_check[0]);
-			if (spot_to_check.y-1 >=1) {
+			if (spot_to_check.y-1 >=1) {	//upper bound check
 				if (map[map_y][map_x].map[1][spot_to_check.y-1][spot_to_check.x] == 0 && 
-					congruent_spots.indexOf(JSON.stringify({x:spot_to_check.x, y:spot_to_check.y-1})) < 0 && 
+					contiguous_spots.indexOf(JSON.stringify({x:spot_to_check.x, y:spot_to_check.y-1})) < 0 && 
 					spots_to_check.indexOf(JSON.stringify({x:spot_to_check.x, y:spot_to_check.y-1})) < 0) {
 					
 					spots_to_check.push(JSON.stringify({x:spot_to_check.x,y:spot_to_check.y-1}));
 				}
 			}
-			if (spot_to_check.x-1 >=1) {
+			if (spot_to_check.x-1 >=1) {	//left bound check
 				if (map[map_y][map_x].map[1][spot_to_check.y][spot_to_check.x-1] == 0 && 
-					congruent_spots.indexOf(JSON.stringify({x:spot_to_check.x-1,y:spot_to_check.y})) < 0 &&
+					contiguous_spots.indexOf(JSON.stringify({x:spot_to_check.x-1,y:spot_to_check.y})) < 0 &&
 					spots_to_check.indexOf(JSON.stringify({x:spot_to_check.x-1,y:spot_to_check.y})) < 0) {
 					
 					spots_to_check.push(JSON.stringify({x:spot_to_check.x-1,y:spot_to_check.y}));
 				}
 			}
-			if (spot_to_check.y+1 <=14) {
+			if (spot_to_check.y+1 <=14) {	//lower bound check
 				if (map[map_y][map_x].map[1][spot_to_check.y+1][spot_to_check.x] == 0 && 
-					congruent_spots.indexOf(JSON.stringify({x:spot_to_check.x,y:spot_to_check.y+1})) < 0 &&
+					contiguous_spots.indexOf(JSON.stringify({x:spot_to_check.x,y:spot_to_check.y+1})) < 0 &&
 					spots_to_check.indexOf(JSON.stringify({x:spot_to_check.x,y:spot_to_check.y+1})) < 0) {
 					
 					spots_to_check.push(JSON.stringify({x:spot_to_check.x,y:spot_to_check.y+1}));
 				}
 			}
-			if (spot_to_check.x+1 <=18) {
+			if (spot_to_check.x+1 <=18) {	//right bound check
 				if (map[map_y][map_x].map[1][spot_to_check.y][spot_to_check.x+1] == 0 && 
-					congruent_spots.indexOf(JSON.stringify({x:spot_to_check.x+1,y:spot_to_check.y})) < 0 &&
+					contiguous_spots.indexOf(JSON.stringify({x:spot_to_check.x+1,y:spot_to_check.y})) < 0 &&
 					spots_to_check.indexOf(JSON.stringify({x:spot_to_check.x+1,y:spot_to_check.y})) < 0) {
 					
 					spots_to_check.push(JSON.stringify({x:spot_to_check.x+1,y:spot_to_check.y}));
 				}
 			}
-			congruent_spots.push(spots_to_check[0]);
+			contiguous_spots.push(spots_to_check[0]);
 			spots_to_check.splice(0,1);
-			
-			//console.log("C:");
-			//console.log(congruent_spots);
-			//console.log("S:");
-			//console.log(spots_to_check);
 		}
 		
 		var connected = true;
 		for (var c=0; c<starting_points.length; c++) {
-			if (congruent_spots.indexOf(JSON.stringify(starting_points[c])) < 0) {
+			if (contiguous_spots.indexOf(JSON.stringify(starting_points[c])) < 0) {
 				connected = false
 			}
 		}
@@ -630,11 +638,11 @@ function buildLevel(size, prev) {
 	}
 	
 	
-	//map generation
+	//map generation. This builds out the map with basic rooms, and configures thier styling
 	console.log("expanding map...");
-	for (i=0; i<size; i++) {
+	for (i=0; i<size; i++) {	//generate/expand for the number of iterations requested
 		
-		//build list of expandable rooms
+		//build list of expandable rooms (dead end rooms or empty)
 		for (j=0; j<map.length; j++) {
 			for (k=0; k<map[j].length; k++) {
 				if (map[j][k].type == 'empty' ||
@@ -646,16 +654,17 @@ function buildLevel(size, prev) {
 					JSON.stringify(map[j][k].config) == JSON.stringify(data_0.open_48.config) ||
 					JSON.stringify(map[j][k].config) == JSON.stringify(data_0.open_56.config) ||
 					JSON.stringify(map[j][k].config) == JSON.stringify(data_0.open_64.config)) {
+					
 					emptList.push({x:k, y:j});
 				}
 			}
 		}
 		
-		//expand every empty room in list
+		//expand every expandable room in list
 		for (j=0; j<emptList.length; j++) {
 			
 			//check configs of surrounding rooms;
-			var matchConfig = [];
+			var matchConfig = [];	//configuration to match
 			
 			if (map[emptList[j].y-1][emptList[j].x] == 0) {   //above
 				matchConfig.push(2);
@@ -723,15 +732,16 @@ function buildLevel(size, prev) {
 			}
 		}
 		
-		emptList = [];
+		emptList = [];	//reset expandable list
 		if (numRooms < minRooms) {
 			i--;
 		}
 	}
-	
 	console.log("expansions done...");
 	
-	//cap off the remaining empties
+	//done expanding/building out the map. Now we gotta put stuff in it
+	
+	//cap off the remaining empties with dead end rooms. This way we have
 	//build list of remaining empties
 	for (j=0; j<map.length; j++) {
 		for (k=0; k<map[j].length; k++) {
@@ -793,33 +803,50 @@ function buildLevel(size, prev) {
 	
 	console.log("empties capped...");
 	
+	/*
+		next, we connect adjacent open rooms that are separated by a small door. This way contiguous 
+		open rooms have open sides to each other, giving them a more "outside" feel.
+	*/
 	var connectables = 0;
-	//check for connectibles
 	for (i=0; i<map.length; i++) {
 		for (j=0; j<map[i].length; j++) {
 			if (map[i][j] !=0) {
 				// am I an open room?
-				if (map[i][j].config[0].length > 2 || map[i][j].config[1].length > 2 || map[i][j].config[2].length > 2 || map[i][j].config[3].length > 2) {
+				if (map[i][j].config[0].length > 2 || map[i][j].config[1].length > 2 ||
+					map[i][j].config[2].length > 2 || map[i][j].config[3].length > 2) {
 					
 					//Do I neighbor another open room through a small door?
-					if (map[i][j].config[0].length <=2) {
+					
+					if (map[i][j].config[0].length <=2) {	//top-bottom connection
 						connectables++;
-						if (map[i-1][j] !=0 &&
+						//if the adjacent room isn't not a room, and is an open room
+						if (map[i-1][j] !=0 &&	
 							(map[i-1][j].config[0].length > 2 || map[i-1][j].config[1].length > 2 ||
 							map[i-1][j].config[2].length > 2 || map[i-1][j].config[3].length > 2)) {
 							
-							//change data_0.rooms to connect openly
-							var nConfig = [JSON.parse(JSON.stringify(map[i-1][j].config[0])),JSON.parse(JSON.stringify(map[i-1][j].config[1])),
-											[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],JSON.parse(JSON.stringify(map[i-1][j].config[3]))];
-							var mConfig = [[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],JSON.parse(JSON.stringify(map[i][j].config[1])),
-											JSON.parse(JSON.stringify(map[i][j].config[2])),JSON.parse(JSON.stringify(map[i][j].config[3]))];
-											
+							//change the rooms to connect openly
+							var nConfig = [
+								JSON.parse(JSON.stringify(map[i-1][j].config[0])),	//keep the old value
+								JSON.parse(JSON.stringify(map[i-1][j].config[1])),	//keep the old value
+								[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],		//change corrosponding sides
+								JSON.parse(JSON.stringify(map[i-1][j].config[3]))	//keep the old value
+							];
+							var mConfig = [
+								[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],		//change corrosponding sides
+								JSON.parse(JSON.stringify(map[i][j].config[1])),	//keep the old value
+								JSON.parse(JSON.stringify(map[i][j].config[2])),	//keep the old value
+								JSON.parse(JSON.stringify(map[i][j].config[3]))		//keep the old value
+							];
+							
+							//find the correct room matching our new config and replace the old room with the new
 							for (k=0; k<data_0.rooms.length; k++) {
 								if ((JSON.stringify(data_0.rooms[k].config[0]) == JSON.stringify(nConfig[0])) &&
 									(JSON.stringify(data_0.rooms[k].config[1]) == JSON.stringify(nConfig[1])) &&
 									(JSON.stringify(data_0.rooms[k].config[2]) == JSON.stringify(nConfig[2])) &&
 									(JSON.stringify(data_0.rooms[k].config[3]) == JSON.stringify(nConfig[3]))) {
-									map[i-1][j] = JSON.parse(JSON.stringify(data_0.rooms[k]));
+									
+									map[i-1][j] = JSON.parse(JSON.stringify(data_0.rooms[k]));	//overwrite room
+									//styling
 									genFloor(i-1, j);
 									map[i-1][j].wall_style = wall_pal;
 									map[i-1][j].floor_style = floor_style;
@@ -829,7 +856,9 @@ function buildLevel(size, prev) {
 									(JSON.stringify(data_0.rooms[k].config[1]) == JSON.stringify(mConfig[1])) &&
 									(JSON.stringify(data_0.rooms[k].config[2]) == JSON.stringify(mConfig[2])) &&
 									(JSON.stringify(data_0.rooms[k].config[3]) == JSON.stringify(mConfig[3]))) {
-									map[i][j] = JSON.parse(JSON.stringify(data_0.rooms[k]));
+									
+									map[i][j] = JSON.parse(JSON.stringify(data_0.rooms[k]));	//overwrite room
+									//styling
 									genFloor(i, j);
 									map[i][j].wall_style = wall_pal;
 									map[i][j].floor_style = floor_style;
@@ -840,24 +869,35 @@ function buildLevel(size, prev) {
 							
 						}
 					}
-					if (map[i][j].config[1].length <=2) {
+					if (map[i][j].config[1].length <=2) {	//left-right connection
 						connectables++;
 						if (map[i][j-1] !=0 && 
 							(map[i][j-1].config[0].length > 2 || map[i][j-1].config[1].length > 2 ||
 							map[i][j-1].config[2].length > 2 || map[i][j-1].config[3].length > 2)) {
 							
 							//change data_0.rooms to connect openly
-							var nConfig = [JSON.parse(JSON.stringify(map[i][j-1].config[0])),JSON.parse(JSON.stringify(map[i][j-1].config[1])),
-											JSON.parse(JSON.stringify(map[i][j-1].config[2])),[1,2,3,4,5,6,7,8,9,10,11,12,13,14]];
-							var mConfig = [JSON.parse(JSON.stringify(map[i][j].config[0])),[1,2,3,4,5,6,7,8,9,10,11,12,13,14],
-											JSON.parse(JSON.stringify(map[i][j].config[2])),JSON.parse(JSON.stringify(map[i][j].config[3]))];
+							var nConfig = [
+								JSON.parse(JSON.stringify(map[i][j-1].config[0])),	//keep the old value
+								JSON.parse(JSON.stringify(map[i][j-1].config[1])),	//keep the old value
+								JSON.parse(JSON.stringify(map[i][j-1].config[2])),	//keep the old value
+								[1,2,3,4,5,6,7,8,9,10,11,12,13,14]					//change corrosponding sides
+							];
+							var mConfig = [
+								JSON.parse(JSON.stringify(map[i][j].config[0])),	//keep the old value
+								[1,2,3,4,5,6,7,8,9,10,11,12,13,14],					//change corrospoinding sides
+								JSON.parse(JSON.stringify(map[i][j].config[2])),	//keep the old value
+								JSON.parse(JSON.stringify(map[i][j].config[3]))		//keep the old value
+							];
 							
+							//find the correct room matching our new config and replace the old room with the new
 							for (k=0; k<data_0.rooms.length; k++) {
 								if ((JSON.stringify(data_0.rooms[k].config[0]) == JSON.stringify(nConfig[0])) &&
 									(JSON.stringify(data_0.rooms[k].config[1]) == JSON.stringify(nConfig[1])) &&
 									(JSON.stringify(data_0.rooms[k].config[2]) == JSON.stringify(nConfig[2])) &&
 									(JSON.stringify(data_0.rooms[k].config[3]) == JSON.stringify(nConfig[3]))) {
-									map[i][j-1] = JSON.parse(JSON.stringify(data_0.rooms[k]));
+									
+									map[i][j-1] = JSON.parse(JSON.stringify(data_0.rooms[k]));	//overwrite room
+									//styling
 									genFloor(i, j-1);
 									map[i][j-1].wall_style = wall_pal;
 									map[i][j-1].floor_style = floor_style;
@@ -867,7 +907,9 @@ function buildLevel(size, prev) {
 									(JSON.stringify(data_0.rooms[k].config[1]) == JSON.stringify(mConfig[1])) &&
 									(JSON.stringify(data_0.rooms[k].config[2]) == JSON.stringify(mConfig[2])) &&
 									(JSON.stringify(data_0.rooms[k].config[3]) == JSON.stringify(mConfig[3]))) {
-									map[i][j] = JSON.parse(JSON.stringify(data_0.rooms[k]));
+									
+									map[i][j] = JSON.parse(JSON.stringify(data_0.rooms[k]));	//overwrite room
+									//styling
 									genFloor(i, j);
 									map[i][j].wall_style = wall_pal;
 									map[i][j].floor_style = floor_style;
@@ -883,9 +925,11 @@ function buildLevel(size, prev) {
 	
 	console.log("connectables connected...");
 	
+	//build a list of rooms to put stuff in
 	var rList = [];	//list of rooms to put things in
 	for (i=0; i<map.length; i++) {
 		for (j=0; j<map[i].length; j++) {
+			//exclude the starting room and non rooms and rooms that already have obstacles
 			if (map[i][j]!=0 && !(i == start_room.y && j == start_room.x) && map[i][j].obs == -1) {
 				rList.push({x: j, y: i});
 			}
@@ -894,15 +938,16 @@ function buildLevel(size, prev) {
 	
 	console.log("rooms identified...");
 	
-	//apply styling to room
+	//apply styling to all rooms in map
 	for (i=0; i<map.length; i++) {
 		for (j=0; j<map[i].length; j++) {
-			if (map[i][j] != 0) {	//not an empty spot
+			if (map[i][j] != 0) {	//not an non room
 				if (map[i][j].obs == -1) {
 					//apply floor style
 					for (var k=0; k<map[i][j].map[0].length; k++) {
 						for (var l=0; l<map[i][j].map[0][k].length; l++) {
 							if (map[i][j].map[0][k][l] != 0) {
+								//differentiation for inside an outside styling [NOT USED]
 								/*if (map[i][j].open == false) {
 									map[i][j].map[0][k][l] = map[i][j].map[0][k][l]-3;
 								} else {
@@ -922,8 +967,7 @@ function buildLevel(size, prev) {
 						}
 					}
 					
-					//mark that the room has been styled
-					map[i][j].obs = 0;
+					map[i][j].obs = 0;	//mark that the room has been styled
 				}
 			}
 		}
@@ -932,9 +976,10 @@ function buildLevel(size, prev) {
 	console.log("styling applied...");
 	
 	//put start room in map
-	if (prev == null) {
-		map[start_room.y][start_room.x].obs = 1;
+	if (prev == null) {	//only if it's a new map without an existing start room
+		map[start_room.y][start_room.x].obs = 1;	//mark as not needing obstacles
 	
+		//apply the start room config
 		var new_obs = buildConfig('config_goal',configs_all);
 		for (var k=0; k<map[start_room.y][start_room.x].map.length; k++) {
 			for (var l=0; l<map[start_room.y][start_room.x].map[k].length; l++) {
@@ -949,54 +994,56 @@ function buildLevel(size, prev) {
 				}
 			}
 		}
-		rList.splice(rand, 1);
 		
+		rList.splice(rand, 1);	//remove the selected room from the list
 		console.log("start room placed...");
 	}
 	
 	//put boss in map
-	rand = Math.floor(sRandom()*rList.length);
-	var new_boss = JSON.parse(JSON.stringify(data_mobs.bosses[0]));
-	new_boss.data.loc.x = (Math.floor(sRandom()*19))*8;
-	new_boss.data.loc.y = (Math.floor(sRandom()*15))*8;	
+	rand = Math.floor(sRandom()*rList.length);	//pick a room
+	boss_room.x = rList[rand].x;	//save the location of the boss room
+	boss_room.y  =rList[rand].y;
+	var new_boss = JSON.parse(JSON.stringify(data_mobs.bosses[0]));	//make a new boss
+	new_boss.data.loc.x = (Math.floor(sRandom()*19))*8;	//pick a spot
+	new_boss.data.loc.y = (Math.floor(sRandom()*15))*8;	//pick a spot
+	//push the boss to the room
 	map[rList[rand].y][rList[rand].x].contents.push(JSON.parse(JSON.stringify(new_boss)));
 	console.log("boss placed...@"+rList[rand].y+","+rList[rand].x);
-	boss_room.x = rList[rand].x;
-	boss_room.y  =rList[rand].y;
-	
-	map[boss_room.y][boss_room.x].obs = 1;
-	
-	rList.splice(rand, 1);
+	map[boss_room.y][boss_room.x].obs = 1;	//mark as not needing obstacles
+	rList.splice(rand, 1);	//remove the room from the list
 	
 	//put in powerups
-	var num_powerups = rList.length/4;
+	var num_powerups = rList.length/4;	//there should be a 4th as many powerups as there are rooms
 	for (var i=0; i<num_powerups; i++) {
 		//ensure at least one power up in the level
-		rand = Math.floor(sRandom()*rList.length);
+		rand = Math.floor(sRandom()*rList.length);	//pick a room
 		var new_aug;
 		
-		if (sRandom() > config.wep_probability) {
-			new_aug = JSON.parse(JSON.stringify(data_entities.ent_wep));
+		if (sRandom() > config.wep_probability) {	//roll for a weapon
+			new_aug = JSON.parse(JSON.stringify(data_entities.ent_wep));	//make a new aug entity
 			var selection_wheel = [];
 			var entries = 20;
-			for (var q=0; q<data_weapons.weps.length; q++) {
+			for (var q=0; q<data_weapons.weps.length; q++) {	//roll for what kind of weapon
 				for (var r=0; r<entries-data_weapons.weps[q].rarity; r++) {
 					selection_wheel.push(q);
 				}
 			}
+			//set the powerup as the selected weapon
 			new_aug.data.wep = selection_wheel[Math.floor(sRandom()*selection_wheel.length)];
-		} else {
-			new_aug = JSON.parse(JSON.stringify(data_entities.ent_aug));
+		} else {	//eles it's an augment
+			new_aug = JSON.parse(JSON.stringify(data_entities.ent_aug));	//make a new aug entity
 			var selection_wheel = [];
 			var entries = 20;
-			for (var q=0; q<data_augments.augments.length; q++) {
+			for (var q=0; q<data_augments.augments.length; q++) {	//roll for what kind of augment
 				for (var r=0; r<entries-data_augments.augments[q].data.rarity; r++) {
 					selection_wheel.push(q);
 				}
 			}
+			//set the powerup as the selected augment
 			new_aug.data.aug = selection_wheel[Math.floor(sRandom()*selection_wheel.length)];
 		}
 		
+		//apply the powerup room config
 		map[rList[rand].y][rList[rand].x].obs = 1;
 		var new_obs = buildConfig('config_item',configs_all);
 		for (var k=0; k<map[rList[rand].y][rList[rand].x].map.length; k++) {	//layer
@@ -1013,8 +1060,9 @@ function buildLevel(size, prev) {
 			}
 		}
 		
-		map[rList[rand].y][rList[rand].x].contents.push(new_aug);
-		rList.splice(rand,1);
+		map[rList[rand].y][rList[rand].x].contents.push(new_aug);	//pus the new power up to the room
+		map[rList[rand].y][rList[rand].x].obs = 1;	//mark as not needing obstacles
+		rList.splice(rand,1);	//remove the room from the list
 	}
 	
 	console.log("augments placed...");
@@ -1022,11 +1070,12 @@ function buildLevel(size, prev) {
 	//assign obstacle configs
 	for (i=0; i<map.length; i++) {
 		for (j=0; j<map[i].length; j++) {
-			
+			//if not a non room, if is a room needing obstacles, not the start room and not the boss room
 			if (map[i][j] != 0 && map[i][j].obs == 0 && !(i == start_room.y && j == start_room.x) && !(i == boss_room.y && j == boss_room.x)) {
-				if (sRandom() > config.config_probability) {	//generate obstacles
-					genRoom(i,j);
-				} else {	//or use a pre made one
+				if (sRandom() > config.config_probability) {	//roll for generated or pre-maed obstacles
+					genRoom(i,j);	//generate obstacles
+				} else {
+					//pre-made obstacles
 					var config_list;
 					if (map[i][j].open == false) {
 						var new_obs = buildConfig(configs_inside[Math.floor(sRandom()*configs_inside.length)].name, configs_inside);
@@ -1060,8 +1109,7 @@ function buildLevel(size, prev) {
 	//build key place list
 	//place key
 	for (var i=0; i<rList.length; i++) {
-		//only want doors on non-open rooms
-		if (map[rList[i].y][rList[i].x].open == false) {
+		if (map[rList[i].y][rList[i].x].open == false) {	//only want doors on non-open rooms
 			if (sRandom() < config.door_probability) {	//roll for a door
 				//pick a doorway
 				//build list of openings/doorable spots
@@ -1088,20 +1136,19 @@ function buildLevel(size, prev) {
 				}
 				
 				if (available_openings.length > 0) {
-					//pick an opening, and place the door
-					rand = Math.floor(sRandom()*available_openings.length);
-					var new_door = JSON.parse(JSON.stringify(data_entities.ent_key_door));
-					//new_config[available_openings[rand]].push(available_openings[rand]);
-					//console.log(available_openings[rand]);
+					rand = Math.floor(sRandom()*available_openings.length);	//pick an opening
+					var new_door = JSON.parse(JSON.stringify(data_entities.ent_key_door));	//make a door
+					//config the door
 					new_door.data.config = available_openings[rand];
 					new_door.data.room = {x:rList[i].x, y: rList[i].y};
+					new_door.data.color = "green";
 					
-					//for the list of rooms we can place a key in
+					//figure out a list of rooms we can place a key in
 					var key_place_rooms_to_check = [JSON.stringify({x:start_room.x, y:start_room.y})];
 					var key_place_rooms_valid = [];
 					var key_place_rooms_checked = [];
 					
-					while (key_place_rooms_to_check.length > 0) {
+					while (key_place_rooms_to_check.length > 0) {	//until we find at least one viable room
 						
 						//find out the available room exits
 						var exits = [];
@@ -1111,7 +1158,7 @@ function buildLevel(size, prev) {
 								exits.push(j);
 							}
 						}
-						//console.log("available exits: "+exits);
+						
 						//get rid of exits blocked by doors
 						for (var j=0; j<map[JSON.parse(key_place_rooms_to_check[0]).y][JSON.parse(key_place_rooms_to_check[0]).x].contents.length; j++) {
 							if (map[JSON.parse(key_place_rooms_to_check[0]).y][JSON.parse(key_place_rooms_to_check[0]).x].contents[j] != null) {
@@ -1121,24 +1168,23 @@ function buildLevel(size, prev) {
 									}
 								}
 							}
-							
 						}
-						//console.log("valid exits: "+exits);
-						if (JSON.parse(key_place_rooms_to_check[0]).y == new_door.data.room.y && JSON.parse(key_place_rooms_to_check[0]).x == new_door.data.room.x) {
-							//console.log("in room with new door");
+						
+						//remove the possibility that the key is in the same room as the door
+						if (JSON.parse(key_place_rooms_to_check[0]).y == new_door.data.room.y && 
+							JSON.parse(key_place_rooms_to_check[0]).x == new_door.data.room.x) {
+							
 							exits.splice(exits.indexOf(new_door.config), 1);
 						}
 						
-						//console.log("final valid exits: "+exits);
 						//for each exit, look at the room it leads to
-						if (exits.length == 0) {
-							//locked in the room
+						if (exits.length == 0) {	//locked in the room (no viable exits) [This shouldn't happen]
 							//console.log("welp");
 							key_place_rooms_checked.push(key_place_rooms_to_check[0]);
 							key_place_rooms_to_check.shift();
-						} else {
+						} else {	//otherwise at least 1 viable exit
 							for (var j=0; j<exits.length; j++) {
-								var to_check;
+								var to_check;	//need to check what's on the other side
 								var dupe;
 								switch(exits[j]) {
 									case	0:	to_check = {x:JSON.parse(key_place_rooms_to_check[0]).x, y:JSON.parse(key_place_rooms_to_check[0]).y-1};
@@ -1165,7 +1211,7 @@ function buildLevel(size, prev) {
 								}
 							}
 							
-							
+							//need to check if the room we want already has a key or a powerup
 							var hasAug = false;
 							var hasKey = false;
 							for (j=0; j<map[JSON.parse(key_place_rooms_to_check[0]).y][JSON.parse(key_place_rooms_to_check[0]).x].contents.length; j++) {
@@ -1187,18 +1233,18 @@ function buildLevel(size, prev) {
 								(JSON.parse(key_place_rooms_to_check[0]).y != boss_room.y && JSON.parse(key_place_rooms_to_check[0]).x != boss_room.x) &&
 								(JSON.parse(key_place_rooms_to_check[0]).y != start_room.y && JSON.parse(key_place_rooms_to_check[0]).x != start_room.x)) {
 								
-								key_place_rooms_valid.push(key_place_rooms_to_check[0]);
+								key_place_rooms_valid.push(key_place_rooms_to_check[0]);	//only push rooms with nothing
 							}
 							key_place_rooms_checked.push(key_place_rooms_to_check[0]);
 							key_place_rooms_to_check.shift();
 						}
 					}
 					
-					if (key_place_rooms_valid.length > 0) {
-						rand = Math.floor(sRandom()*key_place_rooms_valid.length);
+					if (key_place_rooms_valid.length > 0) {	//if we have at least 1 valid room to put a key in
+						rand = Math.floor(sRandom()*key_place_rooms_valid.length);	//pick a room
 					
-						var new_key = JSON.parse(JSON.stringify(data_entities.ent_key));
-						new_key.id = "k_"+seed;
+						var new_key = JSON.parse(JSON.stringify(data_entities.ent_key));	//make a new key
+						new_key.id = "k_"+seed;	//config/identify
 						
 						//move contents if needed
 						if (map[JSON.parse(key_place_rooms_valid[rand]).y][JSON.parse(key_place_rooms_valid[rand]).x].map[1][Math.floor(new_key.data.loc.y/tile_size)][Math.floor(new_key.data.loc.x/tile_size)] != 0) {
@@ -1214,16 +1260,13 @@ function buildLevel(size, prev) {
 								}
 							}
 							
-							var rand_place = Math.floor(sRandom()*placeList.length);
-							new_key.data.loc.x = placeList[rand_place].x*tile_size;
+							var rand_place = Math.floor(sRandom()*placeList.length);	//pick a random valid spot to put the key
+							new_key.data.loc.x = placeList[rand_place].x*tile_size;		//place the key
 							new_key.data.loc.y = placeList[rand_place].y*tile_size;
 						}
 						
-						
-						new_door.data.color = "green";
-						
 						//place the corresponding door in the connecting room and config them both
-						var other_door = JSON.parse(JSON.stringify(data_entities.ent_key_door));
+						var other_door = JSON.parse(JSON.stringify(data_entities.ent_key_door));	//make a new door
 						switch(new_door.data.config) {
 							case	0:	new_door.data.loc = {x:tile_size*9, y:0};
 										new_door.data.hit_box = {x:0,y:0,w:16,h:12};
@@ -1300,12 +1343,12 @@ function buildLevel(size, prev) {
 	//put mobs in rooms
 	for (i=0; i<map.length; i++) {
 		for (j=0; j<map[i].length; j++) {
+			//if not a non room and not the start or boss rooms
 			if (map[i][j] != 0 && !(i == start_room.y && j == start_room.x) && !(i == boss_room.y && j == boss_room.x)) {
-				if (sRandom() > config.mob_probability) {
+				if (sRandom() > config.mob_probability) {	//roll for a mob
 					rand = Math.floor(sRandom()*(4+difficulty))+1;	//roll for how many mobs in this room
-					//rand = 1;
-					//console.log(rand);
-					for (k=0; k<rand; k++) {
+					
+					for (k=0; k<rand; k++) {	//for each mob we get, roll for what kind
 						//select the type of mob
 						var selection_wheel = [];
 						var entries = 10;
@@ -1314,12 +1357,14 @@ function buildLevel(size, prev) {
 								selection_wheel.push(q);
 							}
 						}
+						//make the new mob
 						var new_mob = JSON.parse(JSON.stringify(data_mobs.mobs[selection_wheel[Math.floor(sRandom()*selection_wheel.length)]]));
-						
-						new_mob.data.loc.y = Math.floor(sRandom()*10)+2;
+						//config the mob
+						new_mob.data.loc.y = Math.floor(sRandom()*10)+2;	//set position
 						new_mob.data.loc.x = Math.floor(sRandom()*14)+2;
-						new_mob.data.drop = JSON.parse(JSON.stringify(data_entities.ent_drop));
+						new_mob.data.drop = JSON.parse(JSON.stringify(data_entities.ent_drop));	//set drop
 						
+						//roll for the mob's level
 						selection_wheel = [];
 						entries = (new_mob.data.level_range[1])*2;
 						for (var q=new_mob.data.level_range[0]; q<new_mob.data.level_range[1]; q++) {
@@ -1327,14 +1372,16 @@ function buildLevel(size, prev) {
 								selection_wheel.push(q);
 							}
 						}
-						
+						//apply level
 						new_mob.data.level = selection_wheel[Math.floor(sRandom()*selection_wheel.length)]+difficulty;
 						
+						//roll for the mob's ai
 						if (sRandom() < .40+new_mob.data.level/10) {
 							new_mob.data.ai = 0;
 						} else {
 							new_mob.data.ai = Math.floor(sRandom()*data_mobs.ais.length-1)+1;
 						}
+						//more config
 						new_mob.data.speed+=Math.floor(new_mob.data.level/10);
 						new_mob.data.health_max = new_mob.data.health_max*new_mob.data.level;
 						new_mob.data.health = new_mob.data.health_max;
@@ -1345,7 +1392,6 @@ function buildLevel(size, prev) {
 						if (new_mob.data.cooldown_limit <= 30) {
 							new_mob.data.cooldown_limit = 30;
 						}
-						//new_mob.data.move_length = new_mob.data.move_length+new_mob.data.level*8;
 						
 						//if the mob would be out of bounds or on a solid tile, we need to move it
 						if (new_mob.data.loc.x == -1 || new_mob.data.loc.y == -1 || new_mob.data.loc.x < 16 || new_mob.data.loc.y < 16 ||
@@ -1362,8 +1408,8 @@ function buildLevel(size, prev) {
 								}
 							}
 							
-							var rand_place = Math.floor(sRandom()*placeList.length);
-							new_mob.data.loc.x = placeList[rand_place].x*tile_size;
+							var rand_place = Math.floor(sRandom()*placeList.length);	//pick a valid place to put the mob
+							new_mob.data.loc.x = placeList[rand_place].x*tile_size;		//set the place
 							new_mob.data.loc.y = placeList[rand_place].y*tile_size;
 						}
 						console.log("mob placed @"+j+","+i);
@@ -1378,10 +1424,11 @@ function buildLevel(size, prev) {
 	
 	//put chests
 	for (i=0; i<rList.length; i++) {
-		if (sRandom() < config.chest_probability) {
+		if (sRandom() < config.chest_probability) {	//roll for a chest
 			var keyChest = false;
 			var hasAug = false;
 			for (k=0; k<map[rList[rand].y][rList[rand].x].contents.length; k++) {
+				//if there's a key in the room, convert it to a key chest [Not Working?]
 				if (map[rList[rand].y][rList[rand].x].contents[k].type == 'key') {
 					keyChest = true;
 					map[rList[rand].y][rList[rand].x].contents.splice(k,1);
@@ -1391,9 +1438,9 @@ function buildLevel(size, prev) {
 					hasAug = true;
 				}
 			}
-			if (hasAug == false) {
-				var new_chest = JSON.parse(JSON.stringify(data_entities.ent_chest));
-				if (keyChest == true) {
+			if (hasAug == false) {	//if we don't have a powerup, we can place a chest
+				var new_chest = JSON.parse(JSON.stringify(data_entities.ent_chest));	//make a new chest
+				if (keyChest == true) {	//set to key if necessary
 					new_chest.data.contents = 'key';
 				}
 				
@@ -1411,13 +1458,13 @@ function buildLevel(size, prev) {
 				if (map[rList[rand].y][rList[rand].x].map[1][Math.floor(new_chest.data.loc.y/tile_size)][Math.floor(new_chest.data.loc.x/tile_size)] == 0) {
 					map[rList[rand].y][rList[rand].x].map[1][new_chest.data.loc.y/tile_size][new_chest.data.loc.x/tile_size] = 576;
 				} else {
-					var rand_place = Math.floor(sRandom()*placeList.length);
-					new_chest.data.loc.x = placeList[rand_place].x*tile_size;
+					var rand_place = Math.floor(sRandom()*placeList.length);	//pick a spot
+					new_chest.data.loc.x = placeList[rand_place].x*tile_size;	//place the chest
 					new_chest.data.loc.y = placeList[rand_place].y*tile_size;
+					//set a collision tile
 					map[rList[rand].y][rList[rand].x].map[1][new_chest.data.loc.y/tile_size][new_chest.data.loc.x/tile_size] = 576;
 				}
-				
-				map[rList[rand].y][rList[rand].x].contents.push(new_chest);
+				map[rList[rand].y][rList[rand].x].contents.push(new_chest);	//push the chest
 			}
 		}
 	}
@@ -1425,7 +1472,7 @@ function buildLevel(size, prev) {
 	
 	level_complete = false;
 	
-	console.log("map built!");
+	console.log("map built!");	//ALL DONE! Whew
 }
 
 //check for room transitions
@@ -1664,7 +1711,11 @@ function expand_world() {
 	
 }
 
-//api endpoints
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *                                                                           *
+ *  API ENDPOINTS                                                            *
+ *                                                                           *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 app.post('/client_setup', function(req, res) {
 	
 	//make a new player obj and config
