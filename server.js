@@ -253,9 +253,9 @@ function buildLevel(size, prev) {
 	if (prev == null) {	//if we aren't working off of a previously made map
 		start_room = {x:1, y:1};	//default the starting room to 1,1
 		map = [						//initialize the map
-			[0,0,0],
-			[0,data_0.empty,0],
-			[0,0,0]
+			[0,			0,			0],
+			[0,		data_0.empty,	0],
+			[0,			0,			0]
 		];
 	}
 	
@@ -865,10 +865,9 @@ function buildLevel(size, prev) {
 									map[i][j].palette = lvl_pal;
 								}
 							}
-							
-							
 						}
 					}
+					
 					if (map[i][j].config[1].length <=2) {	//left-right connection
 						connectables++;
 						if (map[i][j-1] !=0 && 
@@ -1001,7 +1000,7 @@ function buildLevel(size, prev) {
 	
 	//put boss in map
 	rand = Math.floor(sRandom()*rList.length);	//pick a room
-	boss_room.x = rList[rand].x;	//save the location of the boss room
+	boss_room.x = rList[rand].x;				//save the location of the boss room
 	boss_room.y  =rList[rand].y;
 	var new_boss = JSON.parse(JSON.stringify(data_mobs.bosses[0]));	//make a new boss
 	new_boss.data.loc.x = (Math.floor(sRandom()*19))*8;	//pick a spot
@@ -1010,7 +1009,7 @@ function buildLevel(size, prev) {
 	map[rList[rand].y][rList[rand].x].contents.push(JSON.parse(JSON.stringify(new_boss)));
 	console.log("boss placed...@"+rList[rand].y+","+rList[rand].x);
 	map[boss_room.y][boss_room.x].obs = 1;	//mark as not needing obstacles
-	rList.splice(rand, 1);	//remove the room from the list
+	rList.splice(rand, 1);					//remove the room from the list
 	
 	//put in powerups
 	var num_powerups = rList.length/4;	//there should be a 4th as many powerups as there are rooms
@@ -1475,40 +1474,49 @@ function buildLevel(size, prev) {
 	console.log("map built!");	//ALL DONE! Whew
 }
 
-//check for room transitions
+//check for room transitions and progress them if needed
 function room_transition(player_obj) {
 	
-	if (player_obj.transition_flag == -1) {
-		//player is in trigger zones, trigger the appropriate transition
+	if (player_obj.transition_flag == -1) {	//non-transitioning state
+		//player is in trigger zones, trigger the appropriate transition 
+		//check if the player will be entering a trigger zone and check that there's more map in that direction
+		
+		//transition up
 		if (Math.floor(player_obj.data.y-player_obj.data.speed) <= 1 && player_obj.data.y_map-1 > 0) {
-			player_obj.transition_flag = 0;
-			player_obj.data.y_map--;
-			player_obj.room_draw_y = 0-screen_height+16;
-			player_obj.needs_map_data = true;
+			player_obj.transition_flag = 0;	//start transition up state
+			player_obj.data.y_map--;		//adjust their local map postion to the new room
+			player_obj.room_draw_y = 0-screen_height+16;	//set for room swiping animation
+			player_obj.needs_map_data = true;				//flag the user to recieve update map info on next update
 			console.log("player "+player_obj.id+": "+player_obj.data.x_map+","+(player_obj.data.y_map+1)+
 						"->"+player_obj.data.x_map+","+player_obj.data.y_map);
 		}
+		
+		//transition down
 		if (Math.ceil(player_obj.data.y+8+player_obj.data.speed) >= screen_height-16 && player_obj.data.y_map+1 < map.length-1) {
-			player_obj.transition_flag = 2;
-			player_obj.data.y_map++;
-			player_obj.room_draw_y = screen_height-16;
-			player_obj.needs_map_data = true;
+			player_obj.transition_flag = 2;	//start transition down state
+			player_obj.data.y_map++;		//adjust their local map postion to the new room
+			player_obj.room_draw_y = screen_height-16;	//set for room swiping animation
+			player_obj.needs_map_data = true;			//flag the user to recieve update map info on next update
 			console.log("player "+player_obj.id+": "+player_obj.data.x_map+","+(player_obj.data.y_map-1)+
 						"->"+player_obj.data.x_map+","+player_obj.data.y_map);
 		}
+		
+		//transition left
 		if (Math.floor(player_obj.data.x-player_obj.data.speed) <= 1 && player_obj.data.x_map-1 > 0) {
-			player_obj.transition_flag = 1;
-			player_obj.data.x_map--;
-			player_obj.room_draw_x = 0-screen_width;
-			player_obj.needs_map_data = true;
+			player_obj.transition_flag = 1;	//start transition left state
+			player_obj.data.x_map--;		//adjust their local map postion to the new room
+			player_obj.room_draw_x = 0-screen_width;	//set for room swiping animation
+			player_obj.needs_map_data = true;			//flag the user to recieve update map info on next update
 			console.log("player "+player_obj.id+": "+(player_obj.data.x_map+1)+","+player_obj.data.y_map+
 						"->"+player_obj.data.x_map+","+player_obj.data.y_map);
 		}
+		
+		//transition right
 		if (Math.ceil(player_obj.data.x+8+player_obj.data.speed) >= screen_width && player_obj.data.x_map+1 < map[player_obj.data.y_map].length-1) {
-			player_obj.transition_flag = 3;
-			player_obj.data.x_map++;
-			player_obj.room_draw_x = screen_width;
-			player_obj.needs_map_data = true;
+			player_obj.transition_flag = 3;	//start transition right state
+			player_obj.data.x_map++;		//adjust their local map postion to the new room
+			player_obj.room_draw_x = screen_width;	//set for room swiping animation
+			player_obj.needs_map_data = true;		//flag the user to recieve update map info on next update
 			console.log("player "+player_obj.id+": "+(player_obj.data.x_map-1)+","+player_obj.data.y_map+
 						"->"+player_obj.data.x_map+","+player_obj.data.y_map);
 		}
@@ -1517,7 +1525,7 @@ function room_transition(player_obj) {
 	//if the player is indeed transitioning, progress that transition
 	if (player_obj.transition_flag != -1) {
 		
-		//set start x y positions
+		//set room start x y positions
 		if (player_obj.transition_flag == 0) {	
 				player_obj.data.y = screen_height-28;
 		}
@@ -1531,7 +1539,7 @@ function room_transition(player_obj) {
 				player_obj.data.x = 4+player_obj.data.speed;
 		}
 		
-		//scroll
+		//progress the room swipe animation
 		if (player_obj.room_draw_y < 0) {
 			player_obj.room_draw_y = player_obj.room_draw_y+8;
 		}
@@ -1545,19 +1553,19 @@ function room_transition(player_obj) {
 			player_obj.room_draw_x = player_obj.room_draw_x-8;
 		}
 		
-		//once all scrolling is done
+		//once all scrolling is done and still in transition start
 		if (player_obj.room_draw_y == 0 && player_obj.room_draw_x == 0 && (
 			player_obj.transition_flag == 0 || player_obj.transition_flag == 1 ||
 			player_obj.transition_flag == 2 || player_obj.transition_flag == 3)) {
 			
 			switch(player_obj.transition_flag) {
-				case	0:	player_obj.transition_flag = 0.1;
+				case	0:	player_obj.transition_flag = 0.1;	//end transition up state
 							break;
-				case	1:	player_obj.transition_flag = 1.1;
+				case	1:	player_obj.transition_flag = 1.1;	//end transition left state
 							break;
-				case	2:	player_obj.transition_flag = 2.1;
+				case	2:	player_obj.transition_flag = 2.1;	//end transition down state
 							break;
-				case	3:	player_obj.transition_flag = 3.1;
+				case	3:	player_obj.transition_flag = 3.1;	//end transition right state
 							break;
 				default:	break;
 			}
@@ -1565,22 +1573,25 @@ function room_transition(player_obj) {
 	}
 }
 
-//from Antti Sykäri on Stack overflow (with modification by me)
-function sRandom() {
+
+//rolls for a seeded random
+function sRandom() {	//from Antti Sykäri on Stack overflow (with modification by me)
 	var x = Math.sin(seed++) * 10000;
 	x = x - Math.floor(x);
 	x = Math.abs(x);
 	return x; 
 }
 
+//update a room and its contents
 function update_room(map_x, map_y) {
-	map[map_y][map_x].audio_queue = [];
+	map[map_y][map_x].audio_queue = [];	//clear the rooms audio queue [UNFINISHED]
 	//build a list of players that are in this room
 	local_players = [];
 	for (var i=0; i<player_list.length; i++) {
 		if (player_list[i] != null) {
 			if (player_list[i].data.x_map == map_x && player_list[i].data.y_map == map_y) {
 				local_players.push(player_list[i]);
+				//add the audio emitted by players to the audio queue [UNFINISHED]
 				map[map_y][map_x].audio_queue = map[map_y][map_x].audio_queue.concat(player_list[i].local_audio);
 			}
 		}
@@ -1589,41 +1600,43 @@ function update_room(map_x, map_y) {
 	//update the various things in the room
 	if (map[map_y][map_x] !=null) {
 		if (map[map_y][map_x] != 0) {
-			if (map[map_y][map_x] != null) {
+			if (map[map_y][map_x] != null) {	//check again, because you'd be surprised
 				for (var i=0; i<map[map_y][map_x].contents.length; i++) {
-					if (map[map_y][map_x].contents != null) {
+					if (map[map_y][map_x].contents != null) {	//again, you'd be surprised
 						if (map[map_y][map_x].contents[i] != null) {
-							if (map[map_y][map_x].contents[i].data.type == 'aug') {
+							//run the appropriate update function depending on what the entity is
+							if (map[map_y][map_x].contents[i].data.type == 'aug') {		//powerup
 								data_entities.ent_aug_update(map[map_y][map_x].contents[i], local_players, data_augments.augments, map[map_y][map_x].contents);
 							}
-							if (map[map_y][map_x].contents[i].data.type == 'wep') {
+							if (map[map_y][map_x].contents[i].data.type == 'wep') {		//weapon
 								data_entities.ent_wep_update(map[map_y][map_x].contents[i], local_players, data_weapons.weps, map[map_y][map_x].contents);
 							}
-							if (map[map_y][map_x].contents[i].data.type == 'key') {
+							if (map[map_y][map_x].contents[i].data.type == 'key') {		//key
 								data_entities.ent_key_update(map[map_y][map_x].contents[i], local_players);
 							}
-							if (map[map_y][map_x].contents[i].data.type == 'door') {
+							if (map[map_y][map_x].contents[i].data.type == 'door') {	//door
 								data_entities.ent_key_door_update(map[map_y][map_x].contents[i], local_players, map);
 							}
-							if (map[map_y][map_x].contents[i].data.type == 'drop') {
+							if (map[map_y][map_x].contents[i].data.type == 'drop') {	//drop
 								data_entities.ent_drop_update(map[map_y][map_x].contents[i], local_players);
 							}
-							if (map[map_y][map_x].contents[i].data.type == 'bag') {
+							if (map[map_y][map_x].contents[i].data.type == 'bag') {		//death bag
 								data_entities.ent_bag_update(map[map_y][map_x].contents[i], local_players, data_augments.augments);
 							}
-							if (map[map_y][map_x].contents[i].data.type == 'goal') {
+							if (map[map_y][map_x].contents[i].data.type == 'goal') {	//start/goal	
 								data_entities.ent_goal_update(map[map_y][map_x].contents[i], local_players);
 							}
-							if (map[map_y][map_x].contents[i].data.type == 'chest') {
+							if (map[map_y][map_x].contents[i].data.type == 'chest') {	//chest
 								data_entities.ent_chest_update(map[map_y][map_x].contents[i], local_players, map[map_y][map_x].contents);
 							}
-							if (map[map_y][map_x].contents[i].data.type == 'mob') {
+							if (map[map_y][map_x].contents[i].data.type == 'mob') {		//enemy
 								data_mobs.mob_update(map[map_y][map_x].contents[i], local_players, map[map_y][map_x]);
 								map[map_y][map_x].audio_queue = map[map_y][map_x].audio_queue.concat(map[map_y][map_x].contents[i].local_audio);
 							}
-							if (map[map_y][map_x].contents[i].data.type == 'boss') {
+							if (map[map_y][map_x].contents[i].data.type == 'boss') {	//boss
 								data_mobs.boss_update(map[map_y][map_x].contents[i], local_players, map[map_y][map_x]);
 								map[map_y][map_x].audio_queue = map[map_y][map_x].audio_queue.concat(map[map_y][map_x].contents[i].local_audio);
+								//if the boss is dead, expand the world! (well, try to at least)
 								if (map[map_y][map_x].contents[i].data.states.is_dead == true) {
 									map[map_y][map_x].contents[i] = null;
 									expand_world();
@@ -1639,18 +1652,20 @@ function update_room(map_x, map_y) {
 
 //upate cycle
 function main_loop() {	//get rid of inactive/disconnected players + update rooms
-	start_time = new Date();
-	active_rooms = [];
+	start_time = new Date();	//frame timing data
+	active_rooms = [];		//clear the active rooms list
+	
+	//update the players!
 	for (var i=0; i<player_list.length; i++) {
 		if (player_list[i]!=null) {
-			if (player_list[i].update_counter < 0) {
+			if (player_list[i].update_counter < 0) {	//if player is inactive, remove them
 				data_player.drop_bag(player_list[i], map[player_list[i].data.y_map][player_list[i].data.x_map].contents);
 				//console.log(map[player_list[i].data.y_map][player_list[i].data.x_map].contents);
 				console.log("player "+player_list[i].id+" terminated");
 				player_list[i] = null;
-			} else {
+			} else {	//players is active! update and manage them
 				player_list[i].update_counter--;
-				//if in a "not" room, put them in the start room
+				//if player is out of bounds, put them in the start room
 				if (map[player_list[i].data.y_map][player_list[i].data.x_map] == 0) {
 					player_list[i].data.y_map = start_room.y;
 					player_list[i].data.x_map = start_room.x;
@@ -1663,7 +1678,7 @@ function main_loop() {	//get rid of inactive/disconnected players + update rooms
 				//check for room transition
 				room_transition(player_list[i]);
 				
-				//add whatever room their in to our list
+				//add whatever room they're in to our list of rooms to update
 				new_room = '{"x":'+player_list[i].data.x_map+',"y":'+player_list[i].data.y_map+'}';
 				if (active_rooms.indexOf(new_room) < 0) {
 					active_rooms.push(new_room);
@@ -1677,6 +1692,8 @@ function main_loop() {	//get rid of inactive/disconnected players + update rooms
 		coords = JSON.parse(active_rooms[i]);
 		update_room(coords.x, coords.y);
 	}
+	
+	//delay the next update if we finished early
 	end_time = new Date();
 	cycle_time = end_time.getTime()-start_time.getTime();
 	delay_time = 15-cycle_time;
@@ -1686,7 +1703,10 @@ function main_loop() {	//get rid of inactive/disconnected players + update rooms
 	setTimeout(main_loop, delay_time);
 }
 
+//expand the already made world
 function expand_world() {
+	
+	//return all players to the start room
 	for (var i=0; i<player_list.length; i++) {
 		if (player_list[i] != null) {
 			player_list[i].data.x_map = start_room.x;
@@ -1696,9 +1716,10 @@ function expand_world() {
 		}
 	}
 	
-	buildLevel(config.level_size, map);
-	difficulty = difficulty*config.difficulty_scale
+	buildLevel(config.level_size, map);	//generate new parts to the level
+	difficulty = difficulty*config.difficulty_scale	//up the difficulty
 	
+	//set all the players to recive map updates, and reset their postion to the start square
 	for (var i=0; i<player_list.length; i++) {
 		if (player_list[i] != null) {
 			player_list[i].reset_map = true;	
@@ -1716,6 +1737,8 @@ function expand_world() {
  *  API ENDPOINTS                                                            *
  *                                                                           *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+//inits  new client
 app.post('/client_setup', function(req, res) {
 	
 	//make a new player obj and config
@@ -1750,6 +1773,7 @@ app.post('/client_setup', function(req, res) {
 	}));
 });
 
+//update a client
 app.post('/update', function(req, res) {
 	
 	if (player_list[req.body.player.id] != null) {
