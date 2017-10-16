@@ -90,11 +90,12 @@ function main() {
 	});
 }
 
-/********************
-*
-*BUILD ROOM CONFIGS
-*
-********************/
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *                                                                           *
+ *  BUILD ROOM CONFIGS                                                       *
+ *                                                                           *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 //reads in the Tiled map data, and converts it into usable configs
 function build_configs(my_callback) {
@@ -212,9 +213,9 @@ function buildConfig(config_name, list) {
 					formatted_config[l].push(layer);
 				}
 			}
-			return formatted_config;
 		}
 	}
+	return formatted_config;
 }
 
 
@@ -236,7 +237,7 @@ function buildLevel(size, prev) {
 	var numKeys = 0;			//number of keys added to the map
 	var floor_pal = [190];		//list of base tiles available for the floor pallettes in this level (always has 190)
 	var pos_floors = [			//list of available base floor tiles to pic from
-		191,192,
+		191,192,				//190 is part of the 190's set of three, but is used in every floor
 		222,223,224,
 		254,255,256
 	];
@@ -247,12 +248,13 @@ function buildLevel(size, prev) {
 		285,
 		317
 	];
-	//pick a type of generatable object to ue when generating room obstacles
+	
+	//pick a type of generatable object to use when generating room obstacles
 	var fancy_genned_obstacles = Math.floor(sRandom()*config.fancy_genned_obstacles_available)*2;
 	
 	if (prev == null) {	//if we aren't working off of a previously made map
 		start_room = {x:1, y:1};	//default the starting room to 1,1
-		map = [						//initialize the map
+		map = [	//initialize the map (a single empty room surrounded by nothing)
 			[0,			0,			0],
 			[0,		data_0.empty,	0],
 			[0,			0,			0]
@@ -261,7 +263,7 @@ function buildLevel(size, prev) {
 	
 	wall_pal = Math.floor(sRandom()*config.walls_available)*4;	//pick a tile set for the walls
 	
-	switch (wall_pal) {	//adjust the genned obsticals to match the wall set (ie: no trees in building)
+	switch (wall_pal) {	//adjust the genned obsticals to match the wall set (ie: no trees in buildings)
 		case	0:	fancy_genned_obsticals = 1*2;
 					break;
 		case	4:	fancy_genned_obsticals = 0*2;
