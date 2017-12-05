@@ -264,15 +264,15 @@ function buildLevel(size, prev) {
 	wall_pal = Math.floor(sRandom()*config.walls_available)*4;	//pick a tile set for the walls
 	
 	switch (wall_pal) {	//adjust the genned obsticals to match the wall set (ie: no trees in buildings)
-		case	0:	fancy_genned_obsticals = 1*2;
+		case	0:	fancy_genned_obstacles = 1*2;
 					break;
-		case	4:	fancy_genned_obsticals = 0*2;
+		case	4:	fancy_genned_obstacles = 0*2;
 					break;
-		case	8:	fancy_genned_obsticals = 2*2;
+		case	8:	fancy_genned_obstacles = 2*2;
 					break;
-		case	12:	fancy_genned_obsticals = 2*2;
+		case	12:	fancy_genned_obstacles = 2*2;
 					break;
-		case	16:	fancy_genned_obsticals = 1*2;
+		case	16:	fancy_genned_obstacles = 1*2;
 					break;
 	}
 	
