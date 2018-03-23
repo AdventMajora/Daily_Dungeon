@@ -18,23 +18,23 @@
 	</div>
 </html>
 <script>
-	var tile_size = 8;			        //size of tiles
-	var base_seed;
-	var player;
-	var player_id = -1;
-	var player_list = [];
-	var player_index = -1;
-	var pressed_keys = [];		        //list of accepted key presses at a given time
-	var map = [[]];                     //The configuration of the current level
-	var map_loc = {};
-	var room_data = null;
-	var room_content = null;
-	var starting_room;
-	var boss_room;
-	var minimap = { 
-		display:false, 
-		map:[],
-		init: function(y,x) {
+	var tile_size = 8;			//size of tiles
+	var base_seed;				//base seed of the current map
+	var player;					//player data
+	var player_id = -1;			//id of the player (NOT necessarily equal to their index)
+	var player_list = [];		//copy of the server's player list
+	var player_index = -1;		//index of the player within the server's player list
+	var pressed_keys = [];		//list of accepted key presses at a given time
+	var map = [[]];				//The configuration of the current level
+	var map_loc = {};			//describes the x,y location of the room the player is in with in the map
+	var room_data = null;		//data of the room the player is currently in
+	var room_content = null;	//content (objects) in the room
+	var starting_room;			//object describing the x,y location of the starting room
+	var boss_room;				//object describing the x,y location of the boss room
+	var minimap = { 			//minimap
+		display:false,			//render the minimap?
+		map:[],					//the map
+		init: function(y,x) {	//initialize the minimap
 			var newRow = [];
 			minimap.map = [];
 			for (var i=0; i<y; i++) {
@@ -49,32 +49,32 @@
 			
 		}
 	};
-	var paused = false;
-	var menu = false;
+	var paused = false;					//is client paused?
+	var menu = false;					//is client displaying the menu?
 	var menu_height = screen_height-16; //Height of the menu
 	var canvas_height = 576;            //height of the rendered canvas (default value)
 	var canvas_width = 640;             //Width of the rendered canvas (default value)
 	var screen_width = 160;		        //Game Resolution Width
 	var screen_height = 144;		    //Game Resolution Height
-	var mode = -1;
-	var menu_input_lock = false;
-	var p_data;
-	var t_flag;
-	var p_inv;
-	var start_time;		//start time of frame
-	var end_time;		//end time of frame
-	var cycle_time;		//total time a frame took
-	var delay_time;		//delay needed until next frame
-	var server_time;
-	var call_start;
-	var call_end;
-	var call_time;
-	var audio_queue = [];
-	var bgm = new Audio('assets/menu-song.wav');    //bacground music
-	bgm.loop = true;                    //loop the track
+	var mode = -1;						//what mode the client is in 
+	var menu_input_lock = false;		//disable menu input?
+	var p_data;			
+	var t_flag;						//room transition flag 
+	var p_inv;						//player invincible flag
+	var start_time;					//start time of frame
+	var end_time;					//end time of frame
+	var cycle_time;					//total time a frame took
+	var delay_time;					//delay needed until next frame
+	var server_time;				//how long it took for the server to get back to us
+	var call_start;					//start time for call to the server
+	var call_end;					//end time for when the server got back to us
+	var call_time;					//total call time to the server
+	var audio_queue = [];			//queue of audio sounds to play [UNFINISHED]
+	var bgm = new Audio('assets/menu-song.wav');	//bacground music
+	bgm.loop = true;				//loop the track
 	//var swing = new Audio('assets/swing.wav');
-	var update_rate = 24;
-	var update_complete = true;
+	var update_rate = 24;			//ms delay before trying to get the 
+	var update_complete = true;		//update from serve is complete
 	
 	//////////////////////////////////////////////////////////////////////////
 	//                                                                      //
@@ -150,24 +150,26 @@
 	  }
 	}, false);
 	
+	//load all the scripts to run the things
 	console.log('loading data...');
 	[
-		'data_0.js',
-		'data_augments.js',
-		'data_weapons.js',
-		'data_mobs.js',
-		'data_entities.js',
-		'player.js',
-		'data_overworld.js',
-		'configurations.js',
-		'game_client.js',
-	].forEach(function(src) {
+		'data_0.js',			//color palette and base room data
+		'data_augments.js',		//powerups
+		'data_weapons.js',		//weapons
+		'data_mobs.js',			//enemies
+		'data_entities.js',		//objects
+		'player.js',			//player
+		'data_overworld.js',	//overworld data [INACCESSBILE]
+		'configurations.js',	//bre-built room data (generated on server startup)
+		'game_client.js',		//game client code
+	].forEach(function(src) {	//add all the scripts to the page
 		var script = document.createElement('script');
 		script.src = src;
-		script.async = false;
+		script.async = false;	//do it in order (for dependency stuff)
 		document.head.appendChild(script);
 	});
 	
+	//check to see if the player has been provisioned
 	var load_check = setInterval(function() {
 		if (player != null) {
 			console.log("loading done");
@@ -180,6 +182,7 @@
 		}
 	},1000);
 	
+	//run the title screen, awaiting start input
 	var title_ready_check = setInterval(function() {
 		if (mode == -1.1) {
 			console.log("USER IS READY!");
@@ -191,6 +194,7 @@
 		}
 	},250);
 	
+	//player is done with menus and ready to play
 	var user_ready_check = setInterval(function() {
 		if (mode == -2) {
 			console.log("USER IS READY!");
